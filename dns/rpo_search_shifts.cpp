@@ -62,12 +62,42 @@ static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
+void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
+		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define NFIELD 3
 #define XMIN 0.0
 #define YMIN 0.0
 #define YMAX 1.0
 #define NSLICE 1
+
+static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
+  Context* context = (Context*)ctx;
+  PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  PetscInt ind_i;
+  double norm_sq, norm_l_sq = 0.0;
+  PetscScalar* vArray;
+  Vec vl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
+
+  VecScatterBegin(context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
+
+  VecGetArray(vl, &vArray);
+  for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
+    norm_l_sq += vArray[ind_i]*vArray[ind_i];
+  }
+  VecRestoreArray(vl, &vArray);
+
+  norm_sq = 0.0;
+  MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  *norm = sqrt(norm_sq);
+
+  VecDestroy(&vl);
+
+  PetscFunctionReturn(0);
+}
 
 void remove_axis(vector<Field*> field, real_t* data_r, real_t* data_i) {
   int plane_j;
@@ -96,7 +126,7 @@ void remove_axis(vector<Field*> field, real_t* data_r, real_t* data_i) {
   Field::coupleBCs(field[1], field[2], INVERSE);
 }
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst) {
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
@@ -109,16 +139,14 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   real_t *data_r, *data_i;
-  ifstream file;
-  ofstream o_file;
-  double value;
-  double* xArray;
-  string line;
-  Vector du;
-  char filename[100];
   int np2 = Geometry::nP() * Geometry::nP();
+  Vec xi, xj;
+  double dz = 2.0*M_PI/360;
   AuxField* uBar;
-  double _K1 = 0.0, _K2 = 0.0, _K3 = 0.0, _K4 = 0.0;
+  vector<AuxField*>   ui;
+  vector<AuxField*>   u0;
+  vector<AuxField*>   fi;
+  int nstep;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -128,6 +156,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->domain   = domain;
   context->bman     = bman;
   context->analyst  = analyst;
+  context->ff       = FF;
   context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->nElsX    = Femlib::ivalue("NELS_X");
   context->nElsY    = Femlib::ivalue("NELS_Y");
@@ -138,11 +167,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   context->nModesX = nNodesX;
   context->xmax    = Femlib::value("XMAX");
+  context->beta    = Femlib::ivalue("BETA");
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = 0.0;
+    context->tau_i[slice_i] = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   }
   context->domain->step++;
 
@@ -223,7 +253,30 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     context->localSize += (nSlice*2);
     if(!Femlib::ivalue("TRAV_WAVE")) context->localSize += nSlice;
   }
-  xArray = new double[context->localSize];
+
+  assign_scatter_semtex(context);
+
+/*if(!Geometry::procID()){
+int _nr = elOrd*Femlib::ivalue("NELS_Y");
+int _nt = Geometry::nZ();
+int _nz = elOrd*Femlib::ivalue("NELS_X");
+double _dz = Femlib::value("XMAX")/Femlib::ivalue("NELS_X");
+char filename[100];
+sprintf(filename, "coords.semtex");
+ofstream o_file; 
+o_file.open(filename);
+o_file.precision(16);
+for(int iz = 0; iz < _nz; iz++) {
+double _z = (iz/elOrd)*_dz + _dz*0.5*(qx[iz%elOrd]+1.0);
+for(int it = 0; it < _nt; it++) {
+double _theta = ((2.0*M_PI)/Femlib::ivalue("BETA")/Geometry::nZ())*it;
+for(int ir = 0; ir < _nr; ir++) {
+o_file << context->rad_coords[ir] << "\t" << _theta << "\t" << _z << endl;
+}
+}
+}
+o_file.close();
+}*/
 
   // setup the complex fft in the axial direction
   context->data_s = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
@@ -236,76 +289,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     cout << "nDofsPlane: " << context->nDofsPlane << endl;
   }
 
-  // load from files (one for each proc)
-  sprintf(filename, "u.%.3d.rpo", Geometry::procID());
-  //sprintf(filename, "u.%.3d.tst", Geometry::procID());
-  cout << "loading file: " << filename << endl;
-  file.open(filename);
-  ii = 0;
-  while (std::getline(file, line)) {
-    stringstream ss(line);
-    ss >> value;
-    xArray[ii++] = value;
-  }
-  file.close();
-
-  for(int field_i = 0; field_i < 3; field_i++) {
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
-      for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-        for(int point_x = 0; point_x < context->nModesX; point_x++) {
-          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-
-          ii = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
-          data_r[point_y*context->nModesX+point_x] = xArray[ii];
-          // divergence free: mean component of radial velocity is 0
-          if(field_i == 1 && Geometry::procID() == 0 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
-          // note that we are in \tilde{} variables, and the nyquist frequency is also 0
-          //if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
-          if(point_y == 0 && Geometry::procID() > 1) data_r[point_y*context->nModesX+point_x] = 0.0;
-/*
-if(fabs(data_r[point_y*context->nModesX+point_x])>1.0e-6)
-cout<<"nonzero value (real): " << data_r[point_y*context->nModesX+point_x]
-    <<"\tfield: " << field_i 
-    <<"\tproc: " << Geometry::procID() 
-    <<"\tplane: " << plane_i 
-    <<"\tnode_y: " << point_y 
-    <<"\tmode_x: " << mode_l 
-    <<"\tindex: " << ii << endl;
-*/
-          ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
-          data_i[point_y*context->nModesX+point_x] = xArray[ii];
-          // divergence free: mean component of radial velocity is 0
-          if(field_i == 1 && Geometry::procID() == 0 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
-          // don't include the nyquist frequency
-          //if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
-          if(point_y == 0 && Geometry::procID() > 1) data_i[point_y*context->nModesX+point_x] = 0.0;
-/*
-if(fabs(data_i[point_y*context->nModesX+point_x])>1.0e-6)
-cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
-    <<"\tfield: " << field_i 
-    <<"\tproc: " << Geometry::procID() 
-    <<"\tplane: " << plane_i 
-    <<"\tnode_y: " << point_y 
-    <<"\tmode_x: " << mode_l 
-    <<"\tindex: " << ii << endl;
-*/
-          for(int point_x_2 = 0; point_x_2 < context->nModesX; point_x_2++) {
-            _K1 += context->rad_weights[point_y] * context->rad_coords[point_y] * data_r[point_y*context->nModesX+point_x] * data_r[point_y*context->nModesX+point_x_2];
-            _K1 += context->rad_weights[point_y] * context->rad_coords[point_y] * data_i[point_y*context->nModesX+point_x] * data_i[point_y*context->nModesX+point_x_2];
-          }
-        }
-      }
-      // note that we are NOT in tilde variables here, zeroing axial modes will have to happen after...
-      Fourier_to_SEM(plane_i, context, domain->u[field_i], data_r, data_i, field_i, false);
-    }
-    // 060220
-    domain->u[field_i]->zeroNyquist();
-  }
-
-  _K2 = 0.0;
-  for(int field_i = 0; field_i < 3; field_i++) _K2 += domain->u[field_i]->mode_L2(0);
-
-  // add in the base flow
   uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), domain->elmt, 'b');
   *uBar = 0.0;
   for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
@@ -316,162 +299,102 @@ cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
     }
   }
   uBar->transform(FORWARD);
-  *domain->u[0] += *uBar;
+  context->uBar = uBar;
 
-  _K3 = 0.0;
-  for(int field_i = 0; field_i < 3; field_i++) _K3 += domain->u[field_i]->mode_L2(0);
-  // rescaling from constant mass flux (mu is for the Willis Re2500 RPO)
-/*
-  double mu = 1.7947260090086443;
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &xi);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &xj);
+
+  ui.resize(3);
+  u0.resize(3);
+  fi.resize(3);
   for(int field_i = 0; field_i < 3; field_i++) {
-    domain->u[field_i]->transform(INVERSE);
-    *domain->u[field_i] *= (1.0/mu);
-    domain->u[field_i]->transform(FORWARD);
+    ui[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'U'+field_i);
+    fi[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'F'+field_i);
+    u0[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'A'+field_i);
+    *ui[field_i] = *domain->u[field_i];
+    *u0[field_i] = *domain->u[field_i];
   }
-*/
+  context->ui = ui;
+  context->u0 = u0;
+  context->fi = fi;
+
+  //base_profile(context, domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
+  *context->ui[0] -= *context->uBar;
+  velocity_scales(context);
+  *context->ui[0] += *context->uBar;
+
+  cout.precision(12);
+
+  context->c_scale = 1.0;
+  RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xi, true);
+  RPOVecNormL2_Hookstep(context, xi, &norm);
+  if(!Geometry::procID()) cout << "|x_0|: " << norm << endl;
+  context->c_scale = context->tau_i[0] / norm;
+
+  for(int field_i = 0; field_i < 3; field_i++) *u0[field_i] = *domain->u[field_i];
+
+  // pack the initial data
+  RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xi, true);
+  RPOVecNormL2_Hookstep(context, xi, &norm);
+  if(!Geometry::procID()) cout << "initial data norm |x_0|: " << norm << endl;
+
+  // test the final shift
+  AuxField::couple(domain->u[1], domain->u[2], INVERSE);
+  integrate(skewSymmetric, domain, bman, analyst, FF);
+  AuxField::couple(domain->u[1], domain->u[2], FORWARD);
+  for(int field_i = 0; field_i < 3; field_i++) *fi[field_i] = *domain->u[field_i];
+  phase_shift_x(context, Femlib::value("THETA_0") * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  phase_shift_z(context, Femlib::value("PHI_0") * Femlib::ivalue("BETA"), -1.0, context->domain->u);
+  for(int field_i = 0; field_i < 3; field_i++) *ui[field_i] -= *domain->u[field_i];
+  RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xj, true);
+  RPOVecNormL2_Hookstep(context, xj, &norm);
+  if(!Geometry::procID()) cout << "shifted data norm |x_f - x_0|: " << norm << endl;
   
-  //if(!Geometry::procID()) domain->u[0]->addToPlane(0, -1.0*Femlib::value("WAVE_SPEED"));
-  _K4 = 0.0;
-  for(int field_i = 0; field_i < 3; field_i++) _K4 += domain->u[field_i]->mode_L2(0);
-  cout << Geometry::procID() << "\tK: " << _K1 << "\t" << _K2 << "\t" << _K2/_K1 << "\t" << _K3 << "\t" << _K3/_K1 << "\t" << _K4 << "\t" << _K4/_K1 << endl;
-
+  // pack the shifted data
 /*
-  sprintf(filename, "u.%.3d.tmp", Geometry::procID());
-  cout << "writing file: " << filename << endl;
-  o_file.open(filename);
-  for(int field_i = 0; field_i < 3; field_i++) {
-      //domain->u[field_i]->transform(INVERSE);
-      //elements_to_logical(Femlib::ivalue("NELS_X"), Femlib::ivalue("NELS_Y"), domain->u[field_i]->plane(0), data_r);
-      //elements_to_logical(Femlib::ivalue("NELS_X"), Femlib::ivalue("NELS_Y"), domain->u[field_i]->plane(1), data_i);
-      SEM_to_Fourier(0, context, domain->u[field_i], data_r, data_i);
-      for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-        for(int point_x = 0; point_x < context->nModesX; point_x++) {
-          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-//double _x = (point_x/elOrd)*_dx + 0.5*_dx*(1.0 + qx[point_x%elOrd]);
-          if(abs(data_r[point_y*context->nModesX+point_x]) > 1.0e-6 || abs(data_i[point_y*context->nModesX+point_x]) > 1.0e-6) {
-            o_file << "field: " << field_i << " proc: " << Geometry::procID() << "\tpoint_y: " << point_y << "\tmode_l: " << mode_l
-                 << "\treal: " << data_r[point_y*context->nModesX+point_x] 
-//                 << "\tanal: " << 0.5*cos(3.0*2.0*M_PI*_x/Femlib::value("XMAX")) 
-                 << "\timag: " << data_i[point_y*context->nModesX+point_x]
-//                 << "\tanal: " << -0.5*sin(3.0*2.0*M_PI*_x/Femlib::value("XMAX")) 
-                 //<< "\tanal: " << cos((2.0*M_PI/Femlib::ivalue("BETA"))*Geometry::procID())*cos(2.0*M_PI*_x/Femlib::value("XMAX")) << endl;
-<< endl;
-          }
-        }
-      }
-      //domain->u[field_i]->transform(FORWARD);
-  }
-  o_file.close();
-*/
+  phase_shift_x(context, M_PI, -1.0, domain->u);
+  for(int field_i = 0; field_i < 3; field_i++) *ui[field_i] = *domain->u[field_i];
+  RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xi, true);
+  RPOVecNormL2_Hookstep(context, xi, &norm);
+  if(!Geometry::procID()) cout << "shifted data norm |x_0|: " << norm << endl;
 
-  // extract back onto fourier modes to check
-/*
-  SEM_to_Fourier(0, context, domain->u[0], data_r, data_i);
-  for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
-  for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-    for(int point_x = 0; point_x < context->nModesX; point_x++) {
-      ii = LocalIndex(context, 0, 0, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      ii = LocalIndex(context, 0, 1, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-    }
-  }
-  sprintf(filename, "u.%.3d.tst", Geometry::procID());
-  cout << "writing file: " << filename << endl;
-  o_file.open(filename);
-  ii = 0;
-  while (ii < context->localSize) {
-    o_file << xArray[ii++] << endl;
-  }
-  o_file.close();
-
-  SEM_to_Fourier(0, context, domain->u[1], data_r, data_i);
-  for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
-  for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-    for(int point_x = 0; point_x < context->nModesX; point_x++) {
-      ii = LocalIndex(context, 1, 0, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      ii = LocalIndex(context, 1, 1, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-    }
-  }
-  sprintf(filename, "v.%.3d.tst", Geometry::procID());
-  cout << "writing file: " << filename << endl;
-  o_file.open(filename);
-  ii = 0;
-  while (ii < context->localSize) {
-    o_file << xArray[ii++] << endl;
-  }
-  o_file.close();
-
-  SEM_to_Fourier(0, context, domain->u[2], data_r, data_i);
-  for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
-  for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-    for(int point_x = 0; point_x < context->nModesX; point_x++) {
-      ii = LocalIndex(context, 2, 0, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      ii = LocalIndex(context, 2, 1, point_x, point_y);
-      xArray[ii] = data_r[point_y*context->nModesX+point_x];
-    }
-  }
-  sprintf(filename, "w.%.3d.tst", Geometry::procID());
-  cout << "writing file: " << filename << endl;
-  o_file.open(filename);
-  ii = 0;
-  while (ii < context->localSize) {
-    o_file << xArray[ii++] << endl;
-  }
-  o_file.close();
-*/
-
-  // remove the unnecessary axial dofs
-  //remove_axis(domain->u, data_r, data_i);
-
-  //if(!Geometry::procID()) cout << "dumping fields...\n";
+  if(!Geometry::procID()) cout << "dump to file\n";
+  nstep = Femlib::ivalue("N_STEP");
+  Femlib::ivalue("N_STEP", 0);
   domain->dump();
+  Femlib::ivalue("N_STEP", nstep);
+  if(!Geometry::procID()) cout << "done.\n";
+*/
 
-  for(int field_i = 0; field_i < 3; field_i++) {
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
-      SEM_to_Fourier(plane_i, context, domain->u[field_i], data_r, data_i);
+  if(Femlib::ivalue("N_STEP") > 1) {
+    //AuxField::couple(domain->u[1], domain->u[2], INVERSE);
+    //integrate(skewSymmetric, domain, bman, analyst, FF);
+    //AuxField::couple(domain->u[1], domain->u[2], FORWARD);
+    //for(int field_i = 0; field_i < 3; field_i++) *ui[field_i] = *domain->u[field_i];
+    //RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xj, true);
+    //RPOVecNormL2_Hookstep(context, xj, &norm);
+    //cout.precision(12);
+    //if(!Geometry::procID()) cout << "theta: " << context->theta_i[0] << "\t|x_f|: " << norm << endl;
 
-      for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-        for(int point_x = 0; point_x < context->nModesX; point_x++) {
-          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-
-          ii = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
-          if(ii > -1) {
-            xArray[ii] = data_r[point_y*context->nModesX+point_x];
-
-            // divergence free: mean component of radial velocity is 0
-            if(field_i == 1 && Geometry::procID() == 0 && mode_l == 0) xArray[ii] = 0.0;
-            // note that we are in \tilde{} variables, and the nyquist frequency is also 0
-            //if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) xArray[ii] = 0.0;
-          }
-//if(field_i == 2 && Geometry::procID() == 2 && mode_l == -3) cout << xArray[ii] << ", ";
-if(field_i == 1 && Geometry::procID() == 3 && mode_l == -2) cout << xArray[ii] << ", ";
-
-          ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
-          if(ii > -1) {
-            xArray[ii] = data_i[point_y*context->nModesX+point_x];
-
-            // divergence free: mean component of radial velocity is 0
-            if(field_i == 1 && Geometry::procID() == 0 && mode_l == 0) xArray[ii] = 0.0;
-            // don't include the nyquist frequency
-            //if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) xArray[ii] = 0.0;
-          }
-        }
-      }
+    for(int ii = 0; ii <= 360; ii++) {
+      for(int field_i = 0; field_i < 3; field_i++) *domain->u[field_i] = *fi[field_i];
+      phase_shift_x(context, (1.0*ii)/(2.0*M_PI), -1.0, domain->u);
+      for(int field_i = 0; field_i < 3; field_i++) *ui[field_i]  = *u0[field_i];
+      for(int field_i = 0; field_i < 3; field_i++) *ui[field_i] -= *domain->u[field_i];
+      RepackX(context, ui, context->theta_i, context->phi_i, context->tau_i, xj, true);
+      RPOVecNormL2_Hookstep(context, xj, &norm);
+      cout.precision(12);
+      if(!Geometry::procID()) cout << "theta: " << (1.0*ii)/(2.0*M_PI) << "\t|x_f - x_0|: " << norm << endl;
     }
   }
-//if(Geometry::procID() == 2) cout << "\n";
-if(Geometry::procID() == 1) cout << "\n";
 
-  delete[] xArray;
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
   delete[] data_r;
   delete[] data_i;
+  VecDestroy(&xi);
+  VecDestroy(&xj);
 }
 
 int main (int argc, char** argv) {
@@ -496,16 +419,18 @@ int main (int argc, char** argv) {
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
-//domain -> restart ();
+  domain -> restart ();
   //ROOTONLY domain -> report ();
-//domain->u[0]->transform(INVERSE);
-//*domain->u[0] += Femlib::value("WAVE_SPEED");
-//domain->u[0]->transform(FORWARD);
-//domain->dump();
   
+  //Field::coupleBCs(domain->u[1], domain->u[2], FORWARD);
+  AuxField::couple(domain->u[1], domain->u[2], FORWARD);
+
   // solve the newton-rapheson problem
-  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst);
+  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF);
   //delete domain;
+
+  //Field::coupleBCs(domain->u[1], domain->u[2], INVERSE);
+  AuxField::couple(domain->u[1], domain->u[2], INVERSE);
 
   if(!Geometry::procID()) cout << "...done.\n";
 

@@ -46,80 +46,10 @@ static char RCS[] = "$Id$";
 
 #include <dns.h>
 
-#include "rpo_utils.h"
-#include "rpo_preconditioner.h"
-
 static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
-
-#define NFIELD 3
-#define XMIN 0.0
-#define YMIN 0.0
-#define YMAX 1.0
-#define NSLICE 1
-
-void mff_to_pgf(Domain* domain) {
-  int field_i;
-  int np2 = Geometry::nP() * Geometry::nP();
-  double P0, mu;
-  Vector du;
-  AuxField* uBar;
-
-  *domain->u[3] = *domain->u[0];
-  domain->u[3]->gradient(1);
-  du = Field::normTraction(domain->u[3]);
-  du.y /= Femlib::value("XMAX");
-  //P0 = -du.y * Femlib::value("KINVIS") / Femlib::value("XMAX");
-  P0 = du.y * Femlib::value("KINVIS") / Femlib::value("XMAX");
-  mu = 1.0 - P0 / Femlib::value("KINVIS") / 4.0;
-
-  cout.precision(16);
-  if(!Geometry::procID()) cout << "norm traction: " << du.y << endl;
-  if(!Geometry::procID()) cout << "kinvis: " << Femlib::value("KINVIS") << endl;
-  if(!Geometry::procID()) cout << "xmax: " << Femlib::value("XMAX") << endl;
-  if(!Geometry::procID()) cout << "P0: " << P0 << endl;
-  if(!Geometry::procID()) cout << "integral u: " << domain->u[0]->integral() << endl;
-  if(!Geometry::procID()) cout << "integral v: " << domain->u[1]->integral() << endl;
-  if(!Geometry::procID()) cout << "integral w: " << domain->u[2]->integral() << endl;
-  if(!Geometry::procID()) cout << "mass flux to pressure gradient forcing conversion factor, mu: " << mu << endl;
-
-  //mu = 1.7947260090086443;
-  mu = Femlib::value("MFF_TO_PGF_MU");
-  if(!Geometry::procID()) cout << "mass flux to pressure gradient forcing conversion factor, mu: " << mu << endl;
-  for(int field_i = 0; field_i < 3; field_i++) {
-    domain->u[field_i]->transform(INVERSE);
-    *domain->u[field_i] *= (1.0/mu);
-    domain->u[field_i]->transform(FORWARD);
-  }
-
-/*
-  for(field_i = 0; field_i < NFIELD; field_i++) {
-    *domain->u[field_i] *= (1.0/mu);
-  }
-
-  // add in the poiseulle flow
-  uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), domain->elmt, 'b');
-  for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
-    for(int el_i = 0; el_i < domain->elmt.size(); el_i++) {
-      for(int pt_i = 0; pt_i < np2; pt_i++) {
-        uBar->plane(pl_i)[el_i*np2+pt_i] = mu*(1.0 - domain->elmt[el_i]->_ymesh[pt_i]*domain->elmt[el_i]->_ymesh[pt_i]);
-      }
-    }
-  }
-  uBar->transform(FORWARD);
-
-  // add in the regular poiseulle flow
-  *domain->u[0] += *uBar;
-*/
-
-  // add in the mass flux to pressure gradient correction to the poiseulle flow
-  //*uBar *= ((1.0-mu)/mu);
-  //*domain->u[0] += *uBar;
-
-  domain->dump();
-}
 
 int main (int argc, char** argv) {
 #ifdef _GNU_SOURCE
@@ -134,19 +64,44 @@ int main (int argc, char** argv) {
   Domain*          domain;
   DNSAnalyser*     analyst;
   FieldForce*      FF;
-  static char      help[] = "petsc";
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, freeze, session);
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
+
   domain -> restart ();
+
+  // load the second file
+  {
+      char session_2[99];
+      sprintf(session_2, "%s_2", session);
+      if(!Geometry::procID()) cout << "second session file: " << session_2 << endl;
+      FEML* file_2 = new FEML(session_2);
+      Domain* domain_2 = new Domain(file_2, elmt, bman);
+      domain_2 -> restart ();
+      double fac = Femlib::value("CONSTANT");
+      if(!Geometry::procID()) cout << "scale factor: " << fac << endl;
+
+      for(int field_i = 0; field_i < 3; field_i++) {
+          domain->u[field_i]->transform(INVERSE);
+          domain_2->u[field_i]->transform(INVERSE);
+
+          *domain_2->u[field_i] *= fac;
+          *domain_2->u[field_i] += *domain->u[field_i];
+
+          domain->u[field_i]->transform(FORWARD);
+          domain_2->u[field_i]->transform(FORWARD);
+      }
+      domain_2->dump();
+
+      delete domain_2;
+  }
+
   //ROOTONLY domain -> report ();
   
-  // solve the newton-rapheson problem
-  mff_to_pgf(domain);
-  //delete domain;
+  delete domain;
 
   if(!Geometry::procID()) cout << "...done.\n";
 
