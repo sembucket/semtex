@@ -201,8 +201,6 @@ bool OmitAxis(int field_i, int pt_y, int plane_i) {
   return false;
 }
 
-#define SCALE_CONSTRAINTS 1
-
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = context->nElsX * elOrd;
@@ -244,7 +242,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
-    if(!Geometry::procID()) cout << "\ttime step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+    if(!Geometry::procID()) cout << "\ttime step in constraints evaluation: " << Femlib::value("D_T") << endl;
 
     context->domain->time = 0.0;
     context->domain->step = 0;
@@ -253,7 +251,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
-    integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    //integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
     AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     for(int field_i = 0; field_i < context->nField; field_i++) {
       *context->domain->u[field_i] -= *context->u0[field_i];
@@ -274,9 +273,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
           k_x = (2.0 * M_PI / (context->xmax /*-XMIN*/)) * (mode_j);
 
-#ifdef SCALE_CONSTRAINTS
           scale = GetScale(context, field_i, plane_i, mode_i, node_j);
-#endif
 
           index = LocalIndex(context, field_i, plane_i+0, mode_i, node_j);
           rx[index] = -k_x * data_i[node_j * nModesX + mode_i] * scale;
@@ -295,11 +292,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
       SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r, data_i);
       for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
-        k_z = 1.0 * (plane_j / 2);
+        //k_z = 1.0 * (plane_j / 2);
+        k_z = context->beta * (plane_j / 2);
 
-#ifdef SCALE_CONSTRAINTS
         scale = GetScale(context, field_i, plane_i, dof_i%nModesX, dof_i/nModesX);
-#endif
 
         index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
         rz[index] = -k_z * data_i[dof_i] * scale;
@@ -318,9 +314,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, data_i);
 
         for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-#ifdef SCALE_CONSTRAINTS
           scale = GetScale(context, field_i, plane_i, dof_i%nModesX, dof_i/nModesX);
-#endif
 
           index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
           rt[index] = data_r[dof_i] * scale;
@@ -402,10 +396,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                                           << ", f_tau: "   << context->f_tau << endl;
   } else {
     // write the current state vector
+    if(!Geometry::procID()) cout << "writing vector to file at iteration: " << context->iteration;
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
     PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
     VecView(x, viewer);
     PetscViewerDestroy(&viewer);
+    RPOVecNormL2_Hookstep(context, x, &x_norm);
+    if(!Geometry::procID()) cout << ", |x|: " << x_norm << endl;
   }
 
   context->build_dx = true;
@@ -432,16 +429,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   dt = context->tau_i[0] / Femlib::ivalue("N_STEP");
   Femlib::value("D_T", dt);
-  //nStep = context->tau_i[0] / context->dt0;
-  //dt = context->tau_i[0] / nStep;
-  //Femlib::ivalue("N_STEP", nStep);
-  //Femlib::value("D_T", dt);
 
   if(!Geometry::procID()) {
     cout << "\trun time: " << Femlib::ivalue("N_STEP") * Femlib::value("D_T") << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i[0] 
-                       << "\ttheta: " << /*context->c_scale */ context->theta_i[0] * (2.0*M_PI/context->xmax)
-                       << "\tphi:   " << /*context->c_scale */ context->phi_i[0] << endl;
+                       << "\ttheta: " << context->theta_i[0] * (2.0*M_PI/context->xmax)
+                       << "\tphi:   " << context->phi_i[0] << endl;
+                       //<< "\tphi:   " << context->phi_i[0] * Femlib::ivalue("BETA") << endl;
   }
 
   AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
@@ -451,18 +445,19 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-  integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 #ifdef TESTING
   if(!reason) context->domain->dump();
 #endif
   AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
 
   // phase shift in theta (axial direction)
-  phase_shift_x(context, /*context->c_scale */ context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
   // phase shift in phi (azimuthal direction)
-#ifndef RM_2FOLD_SYM
-  phase_shift_z(context, /*context->c_scale */ context->phi_i[0], -1.0, context->domain->u);
-#endif
+  if(Femlib::ivalue("SHIFT_AZIMUTH")) {
+    if(!Geometry::procID()) cout << "\tapplying azimuthal shift: " << context->phi_i[0] * Femlib::ivalue("BETA") << endl;
+    phase_shift_z(context, context->phi_i[0] * Femlib::ivalue("BETA"), -1.0, context->domain->u);
+  }
 
   // set the residual vector
   for(field_i = 0; field_i < context->nField; field_i++) {
@@ -509,8 +504,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   Mat P;
   KSP ksp;
   SNES snes;
-  FEML* file_i;
-  char session_i[100];
   int np2 = Geometry::nP() * Geometry::nP();
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
@@ -527,12 +520,11 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->ui       = ui;
   context->fi       = fi;
   context->u0       = u0;
-  context->build_PC = true;
-  context->x_fourier = true;
   context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->build_dx = false;
   context->nElsX    = Femlib::ivalue("NELS_X");
   context->nElsY    = Femlib::ivalue("NELS_Y");
+  context->beta     = Femlib::ivalue("BETA");
 
   context->theta_i = new real_t[NSLICE];
   context->phi_i   = new real_t[NSLICE];
@@ -543,13 +535,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!Geometry::procID())cout<<"NELS_X: "<<context->nElsX<<", NELS_Y: "<<context->nElsY<<", XMAX: "<<context->xmax<<endl;
   if( context->travelling_wave && !Geometry::procID()) cout << "      travelling wave solution\n";
   if(!context->travelling_wave && !Geometry::procID()) cout << "NOT a travelling wave solution\n";
-  context->iteration = 0;
+  context->iteration = Femlib::ivalue("RPO_LOAD_VEC");
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    context->theta_i[slice_i] = 0.0;
+    context->theta_i[slice_i] = Femlib::value("THETA_0");
     context->phi_i[slice_i]   = 0.0;
     context->tau_i[slice_i]   = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   }
+  if(!Geometry::procID()) cout << "initial shift: " << context->theta_i[0] * (2.0 * M_PI / context->xmax) << endl;
 
   if(!context->travelling_wave && !Femlib::ivalue("ITERATIVE")) {
     if(!Geometry::procID()) cout << "ERROR: solver type must be iterative for rpo configuration!!\n";
@@ -642,6 +635,28 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #endif
 
   context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'p');
+  *context->uBar = 0.0;
+  for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
+    for(int el_i = 0; el_i < domain->elmt.size(); el_i++) {
+      for(int pt_i = 0; pt_i < np2; pt_i++) {
+        context->uBar->plane(pl_i)[el_i*np2+pt_i] = (1.0 - domain->elmt[el_i]->_ymesh[pt_i]*domain->elmt[el_i]->_ymesh[pt_i]);
+      }
+    }
+  }
+  context->uBar->transform(FORWARD);
+  if(Femlib::ivalue("REMOVE_TW")) {
+      char session_2[99];
+      sprintf(session_2, "%s_2", session);
+      if(!Geometry::procID()) cout << "second session file: " << session_2 << endl;
+      FEML* file_2 = new FEML(session_2);
+      Domain* domain_2 = new Domain(file_2, elmt, bman);
+      domain_2 -> restart ();
+      double fac = Femlib::value("REMOVE_TW_SCALE");
+      if(!Geometry::procID()) cout << "travelling wave scale factor: " << fac << endl;
+      context->domain_2 = domain_2;
+      AuxField::couple(domain_2->u[1], domain_2->u[2], FORWARD);
+      for(int field_i = 0; field_i < 3; field_i++) *domain_2->u[field_i] *= fac;
+  }
 
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &x);
@@ -674,7 +689,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  base_profile(context, context->domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
+  //base_profile(context, context->domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
   *context->ui[0] -= *context->uBar;
   velocity_scales(context);
   *context->ui[0] += *context->uBar;
@@ -704,18 +719,21 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   }
 
   // load state from petsc vectors
-  if(Femlib::ivalue("RPO_LOAD_VEC")) {
+  if(context->iteration) {
     char filename[100];
+    double norm;
     PetscViewer viewer;
 
-    context->iteration = Femlib::ivalue("RPO_LOAD_VEC");
-    if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration << endl;
+    if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration;
 
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
     PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_READ, &viewer);
     VecZeroEntries(x);
     VecLoad(x, viewer);
     PetscViewerDestroy(&viewer);
+
+    VecNorm(x, NORM_2, &norm);
+    if(!Geometry::procID()) cout << ", |x|: " << norm << endl;
   }
 
   SNESSolve(snes, NULL, x);
@@ -724,6 +742,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!Geometry::procID()) cout << "rpo solve complete.\n";
   if(!Geometry::procID()) cout << "\tshift theta: " << context->theta_i[0] * (2.0*M_PI/context->xmax) << endl;
   if(!Geometry::procID()) cout << "\tshift phi:   " << context->phi_i[0] << endl;
+  //if(!Geometry::procID()) cout << "\tshift phi:   " << context->phi_i[0] * Femlib::ivalue("BETA") << endl;
   if(!Geometry::procID()) cout << "\tshift tau:   " << context->tau_i[0] << endl;
 
   VecDestroy(&x);
@@ -793,6 +812,9 @@ int main (int argc, char** argv) {
   // solve the newton-rapheson problem
   rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
 
+  for(int field_i = 0; field_i < THREE; field_i++) {
+    *domain->u[field_i] = *ui[field_i];
+  }
   AuxField::couple(domain->u[1], domain->u[2], INVERSE);
   domain->dump();
   delete file_i;

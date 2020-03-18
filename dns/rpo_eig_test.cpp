@@ -16,7 +16,7 @@
 #define F77name(x) x ## _
 //#define F77name(x) x ## 
 
-#define NX 64
+#define NX 32
 #define LX 1.0
 #define _K 1.0
 #define DT 0.1
@@ -34,9 +34,12 @@ double** LinearOp() {
     ip1 = (ii == NX-1) ? 0    : ii+1;
     im1 = (ii ==    0) ? NX-1 : ii-1;
 
-    A[ii][im1] = -1.0*fac;
-    A[ii][ii]  = +2.0*fac;
-    A[ii][ip1] = -1.0*fac;
+    //A[ii][im1] = -1.0*fac;
+    //A[ii][ii]  = +2.0*fac;
+    //A[ii][ip1] = -1.0*fac;
+    A[ii][im1] = +1.0*fac;
+    A[ii][ii]  = -2.0*fac;
+    A[ii][ip1] = +1.0*fac;
   }
   return A;
 }
@@ -137,11 +140,76 @@ void orthonorm(int nk, int nl, double** AK, double** QK, double** HK) {
   free(v);
 }
 
+void least_squares_solution(int kdim, double** HK, double** QK, double beta) {
+  int ii, ki, kj;
+  int kdim_p1 = kdim+1;
+  int one = 1;
+  int lwork = 2*kdim_p1*kdim;
+  int ier;
+  double x, dx = LX/NX, errsq, norm_a_sq, norm_n_sq;
+  double* Htilde = (double*)malloc((2*kdim_p1*kdim)*sizeof(double));
+  double* soln = (double*)malloc(kdim_p1*sizeof(double));
+  double* work = (double*)malloc(lwork*sizeof(double));
+  double* res = (double*)malloc(kdim*sizeof(double));
+  double* soln_x = (double*)malloc(NX*sizeof(double));
+  char _N = 'N';
+
+  for(ii = 0; ii < kdim_p1*kdim; ii++) Htilde[ii] = 0.0;
+  for(ii = 0; ii < kdim_p1*kdim; ii++) {
+    ki = ii%kdim;
+    kj = ii/kdim;
+    // note: fortran arrays are interpreted as the transpose of c arrays!!
+    Htilde[ki*kdim_p1+kj] = HK[kj][ki];
+  }
+  soln[0] = beta;
+  for(ki = 1; ki < kdim_p1; ki++) soln[ki] = 0.0;
+  
+  F77name(dgels) (&_N,kdim,kdim_p1,one,Htilde,kdim_p1,soln,kdim_p1,work,lwork,ier);
+  if(ier) printf("least squares solution error!\n");
+
+  res[0] = -beta;
+  for(ki = 1; ki < kdim; ki++) res[ki] = 0.0;
+  for(ki = 0; ki < kdim; ki++) {
+    printf("%.3d\t%.3d\tlsq: %14.12e\n",kdim,ki,soln[ki]);
+    for(kj = 0; kj < kdim; kj++) res[ki] += HK[ki][kj]*soln[kj];
+  }
+  printf("%.3d |error|: %14.12e\n", kdim, norm(kdim, res));
+
+  // expand solution in terms of orthonormal vectors
+  for(ii = 0; ii < NX; ii++) {
+    soln_x[ii] = 0.0;
+    for(ki = 0; ki < kdim; ki++) soln_x[ii] += soln[ki]*QK[ki][ii];
+  }
+  errsq = norm_a_sq = norm_n_sq = 0.0;
+  for(ii = 0; ii < NX; ii++) {
+    x = ii*dx;
+    //errsq += (soln_x[ii] - cos(2.0*M_PI*x))*(soln_x[ii] - cos(2.0*M_PI*x));
+    errsq += (soln_x[ii] + cos(2.0*M_PI*x))*(soln_x[ii] + cos(2.0*M_PI*x));
+    norm_a_sq += cos(2.0*M_PI*x)*cos(2.0*M_PI*x);
+    norm_n_sq += soln_x[ii]*soln_x[ii];
+  }
+  printf("%.3d |u_a|: %14.12e,\t|u_n|: %14.12e,\t|u_n - u_a|/|u_a|: %14.12e\n", kdim, sqrt(norm_a_sq), sqrt(norm_n_sq), sqrt(errsq)/sqrt(norm_a_sq));
+
+  if(kdim==3) {
+    for(ii = 0; ii < NX; ii++) printf("%14.12e, ",soln_x[ii]);
+    printf("\n");
+    //for(ii = 0; ii < NX; ii++) printf("%14.12e, ",cos(2.0*M_PI*ii*dx));
+    for(ii = 0; ii < NX; ii++) printf("%14.12e, ",-cos(2.0*M_PI*ii*dx));
+    printf("\n");
+  }
+
+  free(Htilde);
+  free(soln);
+  free(work);
+  free(res);
+  free(soln_x);
+}
+
 void rpo_solve() {
   int ier, lwork;
-  int ki, kj, ji, nk = NX/*20*/;
+  int ki, kj, ji, nk = 20;
   //int kdim, one = 1;
-  double **QK, **HK, *AK, *x_o, *x_k, *f_o, *f_k, *wr, *wi, *ZK, *rwork, norm_q, eps = 1.0e-8;
+  double **QK, **HK, *AK, *x_o, *x_k, *f_o, *f_k, *wr, *wi, *ZK, *rwork, norm_q, eps = 1.0e-8, beta;
   double** OP = LinearOp();
   double* rhs = RHS();
   char _N = 'N', _V = 'V';
@@ -166,6 +234,7 @@ void rpo_solve() {
   // 1: first vector
   residual(OP, x_o, rhs, f_o);
   normvec(NX, f_o, QK[0]);
+  beta = norm(NX, f_o);
 
   // 2: iterate
   ki = 0;
@@ -188,6 +257,10 @@ void rpo_solve() {
 
     HK[ki+1][ki] = normvec(NX, QK[ki+1], QK[ki+1]);
 
+    // testing: do a least squares solve to check the residual
+    least_squares_solution(ki+1, HK, QK, beta);
+
+    printf("HK[ki+1][ki]: %lf\n", HK[ki+1][ki]);
     if(HK[ki+1][ki] < 1.0e-10) break;
     ki++;
   } while(ki < nk);
@@ -237,5 +310,5 @@ void rpo_solve() {
 int main (int argc, char** argv) {
   rpo_solve();
 
-  0;
+  return 0;
 }

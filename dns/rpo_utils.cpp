@@ -81,7 +81,7 @@ void velocity_scales(Context* context) {
     context->u0[field_i]->transform(FORWARD);
     context->fi[0]->transform(FORWARD);
     *context->fi[0] *= 0.5;
-    Ku[field_i] = 2.0 * M_PI * context->fi[0]->integral(0);
+    Ku[field_i] = 2.0 * M_PI * context->fi[0]->integral(0) / Femlib::ivalue("BETA");
     MPI_Bcast(&Ku[field_i], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     if(!Geometry::procID()) cout << field_i << ": ke: " << Ku[field_i] << endl;
   }
@@ -103,7 +103,7 @@ void velocity_scales(Context* context) {
   context->u0[0]->transform(FORWARD);
   context->fi[0]->transform(FORWARD);
   *context->fi[0] *= 0.5;
-  Ku_bar = 2.0 * M_PI * context->fi[0]->integral(0);
+  Ku_bar = 2.0 * M_PI * context->fi[0]->integral(0) / Femlib::ivalue("BETA");
   MPI_Bcast(&Ku_bar, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   if(!Geometry::procID()) cout << "Ku_bar:   " << Ku_bar << endl;
@@ -122,32 +122,50 @@ void velocity_scales(Context* context) {
 void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) {
   int elOrd = Geometry::nP() - 1;
   int nModesX = Femlib::ivalue("NELS_X")*elOrd;
+  int pl_i, el_i, pt_i;
+  int np2 = Geometry::nP() * Geometry::nP();
   real_t energy;
   real_t* data_r = new real_t[context->nDofsPlane];
   real_t* data_i = new real_t[context->nDofsPlane];
+  Element* elmt;
 
-  if(!Geometry::procID()) cout << "computing base profile for scale: " << scale << endl;
-
-  *uBar = *ux;
-  SEM_to_Fourier(0, context, uBar, data_r, data_i);
-  for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-    if(Geometry::procID() == 0 && dof_i%nModesX == 0) {
-      data_r[dof_i] *= scale;
-    } else {
-      data_r[dof_i]  = 0.0;
+  if(fabs(scale) < 1.0e-6) {
+    if(!Geometry::procID()) cout << "base profile set to 0.\n";
+    *uBar = 0.0;
+  } else if(scale > 0.0) {
+    if(!Geometry::procID()) cout << "computing base profile for scale: " << scale << endl;
+    *uBar = *ux;
+    SEM_to_Fourier(0, context, uBar, data_r, data_i);
+    for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+      if(Geometry::procID() == 0 && dof_i%nModesX == 0) {
+        data_r[dof_i] *= scale;
+      } else {
+        data_r[dof_i]  = 0.0;
+      }
+      data_i[dof_i]    = 0.0;
     }
-    data_i[dof_i]    = 0.0;
+    Fourier_to_SEM(0, context, uBar, data_r, data_i, 0);
+  } else if(scale < -1.0e-6) {
+    if(!Geometry::procID()) cout << "over-riding base profile with poiseulle flow profile...\n";
+    for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
+      for(int el_i = 0; el_i < context->domain->elmt.size(); el_i++) {
+        elmt = context->domain->elmt[el_i];
+        for(int pt_i = 0; pt_i < np2; pt_i++) {
+          uBar->plane(pl_i)[el_i*np2+pt_i] = (1.0 - elmt->_ymesh[pt_i] * elmt->_ymesh[pt_i]);
+        }
+      }
+    }
+    uBar->transform(FORWARD);
   }
-  Fourier_to_SEM(0, context, uBar, data_r, data_i, 0);
 
   // check the energies
 /*
-  energy = 2.0*M_PI*ux->integral(0);
+  energy = 2.0*M_PI*ux->integral(0)/Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku:       " << energy << endl;
-  energy = 2.0*M_PI*uBar->integral(0);
+  energy = 2.0*M_PI*uBar->integral(0)/Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku_bar:   " << energy << endl;
   *ux -= *uBar;
-  energy = 2.0*M_PI*ux->integral(0);
+  energy = 2.0*M_PI*ux->integral(0)/Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku_prime: " << energy << endl;
   *ux += *uBar;
 */
@@ -158,7 +176,7 @@ void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) 
   context->fi[0]->innerProduct(context->u0, context->u0);
   context->fi[0]->transform(FORWARD);
   *context->fi[0] *= 0.5;
-  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  energy = 2.0 * M_PI * context->fi[0]->integral(0) / Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku:       " << energy << endl;
 
   *context->u0[0] = *uBar;
@@ -166,7 +184,7 @@ void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) 
   context->fi[0]->innerProduct(context->u0, context->u0);
   context->fi[0]->transform(FORWARD);
   *context->fi[0] *= 0.5;
-  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  energy = 2.0 * M_PI * context->fi[0]->integral(0) / Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku_bar:   " << energy << endl;
 
   *context->u0[0] = *ux;
@@ -175,7 +193,7 @@ void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) 
   context->fi[0]->innerProduct(context->u0, context->u0);
   context->fi[0]->transform(FORWARD);
   *context->fi[0] *= 0.5;
-  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  energy = 2.0 * M_PI * context->fi[0]->integral(0) / Femlib::ivalue("BETA");
   if(!Geometry::procID()) cout << "Ku_prime: " << energy << endl;
   *context->u0[0] += *uBar;
 
@@ -204,6 +222,9 @@ void elements_to_logical(int nex, int ney, real_t* data_els, real_t* data_log) {
   int pt_x, pt_y;
   int index = -1;
 
+  // 240120
+  for(int ii = 0; ii < ney*elOrd*nex*elOrd; ii++) data_log[ii] = 0.0;
+
   for(int el_y = 0; el_y < ney; el_y++) {
     for(int el_x = 0; el_x < nex; el_x++) {
       for(int pt_i = 0; pt_i < nodes_per_el; pt_i++) {
@@ -225,6 +246,9 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els, i
   int elOrd = Geometry::nP() - 1;
   int nodes_per_el = (elOrd + 1)*(elOrd + 1);
   int shift_els, pt_r, pt_s, pt_x, pt_y;
+
+  // 240120
+  for(int ii = 0; ii < nodes_per_el*nex*ney; ii++) data_els[ii] = 0.0;
   
   for(int el_y = 0; el_y < ney; el_y++) {
     for(int el_x = 0; el_x < nex; el_x++) {
@@ -336,7 +360,8 @@ double GetScale(Context* context, int field_i, int plane_i, int point_x, int poi
   //double rh     = 0.5*(context->rad_coords[point_y+1] + context->rad_coords[point_y]);
   double rh     = (!point_y) ? 0.1*context->rad_coords[1] : context->rad_coords[point_y];
   double dr     = context->rad_weights[point_y];
-  double scale  = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
+  //double scale  = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
+  double scale  = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + context->beta*fabs(mode_i));
 
   //scale *= sqrt(2.0 * M_PI * rh * dr);
   scale *= sqrt(rh * dr);
@@ -379,6 +404,9 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
     field = fields[field_i];
 
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      // 240120
+      for(int ii = 0; ii < ney*elOrd*nex*elOrd; ii++) data_r[ii] = data_i[ii] = 0.0;
+
       for(int point_y = 0; point_y < ney*elOrd; point_y++) {
         for(int point_x = 0; point_x < context->nModesX; point_x++) {
           mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
@@ -399,15 +427,14 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
       Fourier_to_SEM(plane_i, context, field, data_r, data_i, field_i);
     }
+
+    // 060220
+    field->zeroNyquist();
   }
 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     index = THREE * nDofsCube_l;
-
-    //theta[0] = xArray[index++];
-    //phi[0]   = xArray[index++];
-    //if(!context->travelling_wave) tau[0] = xArray[index++];
     theta[0]                             = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
     phi[0]                               = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
     if(!context->travelling_wave) tau[0] = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
@@ -415,7 +442,11 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArrayRead(xl, &xArray);
 
-  if(add_ubar) *fields[0] += *context->uBar;
+  //if(add_ubar) *fields[0] += *context->uBar;
+  if(add_ubar) {
+    if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] += *context->domain_2->u[field_i];
+    else *fields[0] += *context->uBar;
+  }
 
 #ifdef RM_2FOLD_SYM
   }
@@ -450,11 +481,17 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   if(Geometry::procID()%2==0) {
 #endif
 
-  if(rmv_ubar) *fields[0] -= *context->uBar;
+  //if(rmv_ubar) *fields[0] -= *context->uBar;
+  if(rmv_ubar) {
+    if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] -= *context->domain_2->u[field_i];
+    else *fields[0] -= *context->uBar;
+  }
 
   VecGetArray(xl, &xArray);
   for(int field_i = 0; field_i < THREE; field_i++) {
     field = fields[field_i];
+    // 060220
+    field->zeroNyquist();
 
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       SEM_to_Fourier(plane_i, context, field, data_r, data_i);
@@ -482,10 +519,6 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     index = THREE * nDofsCube_l;
-
-    //xArray[index++]   = theta[0];
-    //xArray[index++]   = phi[0];
-    //if(!context->travelling_wave) xArray[index++] = tau[0];
     xArray[index++]                               = (rmv_ubar) ? theta[0] / context->c_scale : theta[0];
     xArray[index++]                               = (rmv_ubar) ? phi[0]   / context->c_scale : phi[0];
     if(!context->travelling_wave) xArray[index++] = (rmv_ubar) ? tau[0]   / context->c_scale : tau[0];
@@ -493,7 +526,11 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArray(xl, &xArray);
 
-  if(rmv_ubar) *fields[0] += *context->uBar;
+  //if(rmv_ubar) *fields[0] += *context->uBar;
+  if(rmv_ubar) {
+    if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] += *context->domain_2->u[field_i];
+    else *fields[0] += *context->uBar;
+  }
 
 #ifdef RM_2FOLD_SYM
   }
@@ -521,7 +558,7 @@ void assign_scatter_semtex(Context* context) {
   IS    isl, isg;
   Vec   vl, vg;
 
-  if(context->x_fourier)        nShifts++;
+  /*if(context->x_fourier)*/    nShifts++;
   if(!context->travelling_wave) nShifts++;
 
 #ifdef RM_2FOLD_SYM

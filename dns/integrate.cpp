@@ -76,25 +76,32 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
-//#define ID_DIAGNOSTIC 1
+#define ID_DIAGNOSTIC 1
 
 #ifdef ID_DIAGNOSTIC
 bool alloc_diagnostics = true;
-AuxField** vort;
+int diagnostic_file = 0;
+vector<AuxField*> vort;
+vector<AuxField*> vel0;
 AuxField* enst;
 AuxField* pres;
 
 void diagnostics(Domain* domain) {
-  double prod, diss, int_dudy;
+  double prod, diss, tote, tote_prime, int_dudy, divg;
   Vector du;
   ofstream file;
+  char filename[1000];
 
   // allocate if not already done
   if(alloc_diagnostics) {
     alloc_diagnostics = false;
-    vort = new AuxField*[static_cast<size_t>(3)];
+    vort.resize(3);
+    vel0.resize(3);
     for(int ii = 0; ii < 3; ii++) {
       vort[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+      vel0[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+      *vel0[ii] = *domain->u[ii];
+      vel0[ii]->transform(INVERSE);
     }
     enst = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
     pres = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
@@ -106,7 +113,7 @@ void diagnostics(Domain* domain) {
   // transform state into physical space in order to perform pointwise multiplications
   for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(INVERSE);
 
-  // energy production, compute as: I = \int_{V} u.GRAD p dV
+  // energy production, compute as: I = \int_{V} DIV(pu) dV
   *enst = 0.0;
   for(int ii = 0; ii < 3; ii++) {
     *vort[ii] = *pres;
@@ -115,20 +122,25 @@ void diagnostics(Domain* domain) {
     if(ii == 2) vort[ii]->transform(INVERSE);
     if(ii == 2) vort[ii]->divY();
 
-    // constant pressure gradient forcing
-    //if(ii == 0) *vort[ii] += 4.0*Femlib::value("KINVIS");
-    // constant mass flux forcing
-    if(ii == 0) {
-      *domain->u[3] = *domain->u[0];
-      domain->u[3]->transform(FORWARD);
-      domain->u[3]->gradient(1);
-      du = Field::normTraction(domain->u[3]);
-      int_dudy = -2.0 * du.y * Femlib::value("KINVIS") / Femlib::value("XMAX");
-      MPI_Bcast(&int_dudy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-      *vort[ii] += int_dudy;
+    if(fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
+      // constant mass flux forcing
+      if(ii == 0) {
+        *domain->u[3] = *domain->u[0];
+        domain->u[3]->transform(FORWARD);
+        domain->u[3]->gradient(1);
+        du = Field::normTraction(domain->u[3]);
+        int_dudy = -2.0 * du.y * Femlib::value("KINVIS") / Femlib::value("XMAX");
+        MPI_Bcast(&int_dudy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        *vort[ii] += int_dudy;
+      }
+    } else {
+      // constant pressure gradient forcing
+      if(ii == 0) *vort[ii] += 4.0*Femlib::value("KINVIS");
     }
 
+    if(ii==0) *domain->u[ii] += Femlib::value("WAVE_SPEED");
     *vort[ii] *= *domain->u[ii];
+    if(ii==0) *domain->u[ii] -= Femlib::value("WAVE_SPEED");
     *enst += *vort[ii];
   }
   enst->transform(FORWARD);
@@ -194,18 +206,60 @@ void diagnostics(Domain* domain) {
   enst->transform(FORWARD);
   diss = enst->integral();
 
+  // integrate the total energy
+  for(int ii = 0; ii < 3; ii++) *vort[ii] = *domain->u[ii];
+  *vort[0] += Femlib::value("WAVE_SPEED");
+  *enst = 0.0;
+  enst->innerProduct(vort, vort) *= 0.5;
+  enst->transform(FORWARD);
+  tote = enst->integral();
+
+  // perturbation kinetic energy
+  for(int ii = 0; ii < 3; ii++) {
+    *vort[ii]  = *domain->u[ii];
+    *vort[ii] -= *vel0[ii];
+  }
+  enst->innerProduct(vort, vort) *= 0.5;
+  enst->transform(FORWARD);
+  tote_prime = enst->integral();
+
+  // divergence
+  *enst = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    *vort[ii] = *domain->u[ii];
+    vort[ii]->transform(FORWARD);
+    if(ii == 1) {
+      vort[ii]->divY();
+      *enst += *vort[ii];
+      vort[ii]->mulY();
+    }
+    vort[ii]->gradient(ii);
+    if(ii == 2) vort[ii]->divY();
+    *enst += *vort[ii];
+  }
+  divg = enst->integral();
+
   // transform state back into fourier space
   for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(FORWARD);
   pres->transform(FORWARD);
   *domain->u[3] = *pres;
 
   if(!Geometry::procID()) {
-    file.open("production_dissipation.txt", ios::app);
+    sprintf(filename, "production_dissipation_%.4u.txt", diagnostic_file);
+    file.open(filename, ios::app);
     file.precision(12);
-    file << domain->step << "\t" << prod << "\t" << diss << "\n";
+    file << domain->step << "\t" << prod << "\t" << diss << "\t" << tote << "\t" << tote_prime << "\t" << divg << "\n";
     file.close();
   }
-}
+}  
+#endif
+
+//#define CONST_MASS_FLUX 1
+
+#ifdef CONST_MASS_FLUX
+AuxField* velx_n = NULL;
+Vector du;
+double mff_correction;
 #endif
 
 void integrate (void (*advection) (Domain*    , 
@@ -284,16 +338,19 @@ void integrate (void (*advection) (Domain*    ,
     }
 
   // -- Solve the Stokes flow problem with unit forcing
-  if(!D->grn[0] && fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
+  //if(!D->grn[0] && fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
+  if(fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
     real_t            L_x   = Femlib::value("XMAX");
-    vector<AuxField*> tmp;
-    tmp.resize(4);
 
+    if(!D->grn[0]) {
+      for (i = 0; i < 4; i++) {
+        D->grn[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'g'+i);
+        D->tmp[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'k'+i);
+      }
+    }
     for (i = 0; i < 4; i++) {
-      D->grn[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'g'+i);
-      tmp[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'k'+i);
-      *tmp[i] = *D->u[i];
-      *D->u[i] = 0.0;
+      *D->tmp[i] = *D->u[i];
+      *D->u[i]   = 0.0;
     }
 
     // -- Set the constant forcing
@@ -359,16 +416,16 @@ void integrate (void (*advection) (Domain*    ,
 */
 
     // this will be broadcast to the other procs when applied
-    D->Qg  = 2.0 * M_PI * D->u[0]->integral(0);
-    D->Qg /= (M_PI * 1.0 * 1.0 * L_x);
+    D->Qg  = 2.0 * M_PI * D->u[0]->integral(0) / Femlib::ivalue("BETA");
+    D->Qg /= (M_PI * 1.0 * 1.0 * L_x / Femlib::ivalue("BETA"));
     if(!Geometry::procID()) cout << "Stokes + unit forcing volumetric flux: " << D->Qg << endl;
-    if(!Geometry::procID()) cout << "                          ux integral: " << 2.0 * M_PI * D->u[0]->integral(0) << endl;
+    if(!Geometry::procID()) cout << "                          ux integral: " << 2.0 * M_PI * D->u[0]->integral(0) / Femlib::ivalue("BETA") << endl;
     if(!Geometry::procID()) cout << "                          pipe length: " << L_x << endl;
 
     // -- Resetting fields
     for (i = 0; i < 4; i++) {
       *D->grn[i] = *D->u[i];
-      *D->u[i]   = *tmp[i];
+      *D->u[i]   = *D->tmp[i];
     }
 
     *Pressure = 0.0;
@@ -386,9 +443,17 @@ void integrate (void (*advection) (Domain*    ,
 #ifdef ID_DIAGNOSTIC
   // setup only
   diagnostics(D);
+  if(nStep > 1) diagnostic_file++;
 #endif
   
   while (D -> step < nStep) {
+
+#ifdef CONST_MASS_FLUX
+    if(!velx_n) {
+      velx_n = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
+    }
+    *velx_n = *D->u[0];
+#endif
 
     // -- Compute nonlinear terms from previous velocity field.
     //    Add physical space forcing, again at old time level.
@@ -458,6 +523,18 @@ void integrate (void (*advection) (Domain*    ,
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
+#ifdef CONST_MASS_FLUX
+    if(!Geometry::procID()) {
+      mff_correction  = (2.0*M_PI/Femlib::ivalue("BETA"))*(D->u[0]->integral(0) - velx_n->integral(0));
+      mff_correction *= (1.0*Femlib::ivalue("BETA"))/(M_PI*Femlib::value("XMAX"));
+      cout<<"\tint u^{n}: "<<2.0*M_PI*velx_n->integral(0);
+      cout<<"\tint u^{n+1}: "<<2.0*M_PI*D->u[0]->integral(0);
+      *D->u[0] -= mff_correction;
+      cout<<"\tint u^{n+1}: "<<2.0*M_PI*D->u[0]->integral(0);
+      cout<<"\tcorrection:  "<<(2.0*M_PI/Femlib::ivalue("BETA"))*(D->u[0]->integral(0) - velx_n->integral(0))<<endl;
+    }
+#endif
+
     // constant flow rate
     if(fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
       real_t L_x       = Femlib::value("XMAX");
@@ -479,8 +556,8 @@ void integrate (void (*advection) (Domain*    ,
       Femlib::synchronize();
 */
       if(!Geometry::procID()) {
-        getQ  = 2.0 * M_PI * D->u[0]->integral(0);
-        getQ /= (M_PI * 1.0 * 1.0 * L_x);
+        getQ  = 2.0 * M_PI * D->u[0]->integral(0) / Femlib::ivalue("BETA");
+        getQ /= (M_PI * 1.0 * 1.0 * L_x / Femlib::ivalue("BETA"));
         dP    = (_refQ - getQ) / D->Qg;
       }
       //if(!Geometry::procID()) cout << D->step << ":\tmass flux forcing: " << _refQ << "\t" << D->Qg << "\t" << getQ << "\t" << dP << endl;
