@@ -71,33 +71,61 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 
 typedef ModalMatrixSys Msys;
 static int_t NDIM, NCOM, NORD, NADV;
-static Msys** preSolve  (const Domain*);
 
-void _RemoveDivergence(Domain* D, vector<AuxField*> tmp, AuxField* rhs, AuxField* dvg, Msys** M) {
-  int field_i = 0;
+void _RemoveDivergence(Domain* D) {
+  int                    field_i = D->nAdvect() - 1;
+  int                    np      = Geometry::nP();
+  int                    np2     = Geometry::nTotElmt();
+  const int_t            nmodes  = Geometry::nModeProc();
+  const int_t            base    = Geometry::baseMode(); 
+  const real_t           beta    = Femlib::value("BETA");
+  ModalMatrixSys*        mss     = new ModalMatrixSys(0, beta, base, nmodes, D->elmt, D->b[field_i], JACPCG);
+  vector<AuxField*>      tmp;
+  AuxField*              div;
 
-  *rhs = 0.0;
+  if(!Geometry::procID()) cout << "number of advected fields (from session file): " << field_i+1 << endl; 
+  if(field_i == 2) return;
+  if(!Geometry::procID()) cout << "...removing divergence from initial condition." << endl; 
+
+  tmp.resize(3);
   for(int ii = 0; ii < 3; ii++) {
+    tmp[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
     *tmp[ii] = *D->u[ii];
-
-    if(ii == 1) D->u[ii]->mulY();
-    D->u[ii]->gradient(ii);
-    if(ii >  0) D->u[ii]->divY();
-    *rhs -= *D->u[ii];
   }
-  rhs->mulY();
+  div = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
 
-  D->u[field_i]->solve(rhs, M[field_i]);
-  D->u[field_i]->divY();
-  *dvg = *D->u[field_i];
-//*dvg *= 164.0;
+  // compute the divergence (scaled by the radius)
+  *div = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    if(ii < 2) D->u[ii]->mulY();
+    D->u[ii]->gradient(ii);
+    *div -= *D->u[ii];
+  }
+
+  D->u[field_i]->solve(div, mss);
+  D->u[field_i]->zeroNyquist();
+
+  // clean up the axial dofs
+/*
+  D->u[field_i]->zeroNyquist();
+  plane_r = D->u[field_i]->plane(0);
+  plane_i = D->u[field_i]->plane(1);
+  for(int el_i = 0; el_i < Femlib::ivalue("NELS_X"); el_i++) {
+    for(int pt_i = 0; pt_i < np2; pt_i++) {
+      if(Geometry::procID() > 1 && pt_i / np == 0) {
+        plane_r[el_i*np2 + pt_i] = 0.0;
+        plane_i[el_i*np2 + pt_i] = 0.0;
+      }
+    }
+  }
+*/
 
   for(int ii = 0; ii < 3; ii++) {
     *D->u[ii]  = *tmp[ii];
-    *rhs = *dvg;
-    rhs->gradient(ii);
-    if(ii == 2) rhs->divY();
-    *D->u[ii] -= *rhs;
+    *div = *D->u[field_i];
+    div->gradient(ii);
+    if(ii == 2) div->divY();
+    *D->u[ii] -= *div;
   }
 }
 
@@ -270,7 +298,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   // load from files (one for each proc)
   sprintf(filename, "u.%.3d.rpo", Geometry::procID());
-  //sprintf(filename, "u.%.3d.tst", Geometry::procID());
   cout << "loading file: " << filename << endl;
   file.open(filename);
   ii = 0;
@@ -297,16 +324,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
           // 240320
           if(field_i == 2 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
-/*
-if(fabs(data_r[point_y*context->nModesX+point_x])>1.0e-6)
-cout<<"nonzero value (real): " << data_r[point_y*context->nModesX+point_x]
-    <<"\tfield: " << field_i 
-    <<"\tproc: " << Geometry::procID() 
-    <<"\tplane: " << plane_i 
-    <<"\tnode_y: " << point_y 
-    <<"\tmode_x: " << mode_l 
-    <<"\tindex: " << ii << endl;
-*/
+
           ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           data_i[point_y*context->nModesX+point_x] = xArray[ii];
           // divergence free: mean component of radial velocity is 0
@@ -317,16 +335,7 @@ cout<<"nonzero value (real): " << data_r[point_y*context->nModesX+point_x]
 
           // 240320
           if(field_i <= 1 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
-/*
-if(fabs(data_i[point_y*context->nModesX+point_x])>1.0e-6)
-cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
-    <<"\tfield: " << field_i 
-    <<"\tproc: " << Geometry::procID() 
-    <<"\tplane: " << plane_i 
-    <<"\tnode_y: " << point_y 
-    <<"\tmode_x: " << mode_l 
-    <<"\tindex: " << ii << endl;
-*/
+
           for(int point_x_2 = 0; point_x_2 < context->nModesX; point_x_2++) {
             _K1 += context->rad_weights[point_y] * context->rad_coords[point_y] * data_r[point_y*context->nModesX+point_x] * data_r[point_y*context->nModesX+point_x_2];
             _K1 += context->rad_weights[point_y] * context->rad_coords[point_y] * data_i[point_y*context->nModesX+point_x] * data_i[point_y*context->nModesX+point_x_2];
@@ -354,7 +363,33 @@ cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
     }
   }
   uBar->transform(FORWARD);
-  *domain->u[0] += *uBar;
+  if(Femlib::ivalue("REMOVE_IC"))     for(int field_i = 0; field_i < 3; field_i++) *domain->u[field_i] = 0.0;
+  if(Femlib::ivalue("ADD_BASE_FLOW")) *domain->u[0] += *uBar;
+
+/* manufactured solution with artificial divergence */
+/*
+for(int field_i = 0; field_i < 3; field_i++) {
+  for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
+    for(int el_i = 0; el_i < domain->elmt.size(); el_i++) {
+      for(int pt_i = 0; pt_i < np2; pt_i++) {
+        if(field_i == 0) {
+          uBar->plane(pl_i)[el_i*np2+pt_i] = 0.1*cos(2.0*M_PI*domain->elmt[el_i]->_xmesh[pt_i]/Femlib::value("XMAX"));
+        } 
+        if(field_i == 1) {
+          uBar->plane(pl_i)[el_i*np2+pt_i] = 0.2*sin(2.0*M_PI*domain->elmt[el_i]->_ymesh[pt_i]);
+        } 
+        if(field_i == 2 && Geometry::procID() == 3 && pl_i == 0) {
+          uBar->plane(pl_i)[el_i*np2+pt_i] = domain->elmt[el_i]->_ymesh[pt_i];//0.3*cos( (2.0*M_PI*(Geometry::procID()+pl_i)) / (2.0*Geometry::nProc()) );
+        }
+        else uBar->plane(pl_i)[el_i*np2+pt_i] = 0.0;
+      }
+    }
+  }
+  //uBar->transform(FORWARD);
+  *domain->u[field_i] = *uBar;
+}
+*/
+/* manufactured solution with artificial divergence */
 
   _K3 = 0.0;
   for(int field_i = 0; field_i < 3; field_i++) _K3 += domain->u[field_i]->mode_L2(0);
@@ -368,7 +403,6 @@ cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
   }
 */
   
-  //if(!Geometry::procID()) domain->u[0]->addToPlane(0, -1.0*Femlib::value("WAVE_SPEED"));
   _K4 = 0.0;
   for(int field_i = 0; field_i < 3; field_i++) _K4 += domain->u[field_i]->mode_L2(0);
   cout << Geometry::procID() << "\tK: " << _K1 << "\t" << _K2 << "\t" << _K2/_K1 << "\t" << _K3 << "\t" << _K3/_K1 << "\t" << _K4 << "\t" << _K4/_K1 << endl;
@@ -407,92 +441,43 @@ cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
   cout << "writing file: " << filename << endl;
   o_file.open(filename);
   SEM_to_Fourier(0, context, domain->u[0], data_r, data_i);
-  //for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
   for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
     for(int point_x = 0; point_x < context->nModesX; point_x++) {
       mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-      //ii = LocalIndex(context, 0, 0, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      //ii = LocalIndex(context, 0, 1, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
       o_file << mode_l << "\t" << point_y << "\t" << data_r[point_y*context->nModesX+point_x] << "\t" << data_i[point_y*context->nModesX+point_x] << "\n";
     }
   }
-  //ii = 0;
-  //while (ii < context->localSize) {
-  //  o_file << xArray[ii++] << endl;
-  //}
   o_file.close();
 
   sprintf(filename, "v.%.3d.tst", Geometry::procID());
   cout << "writing file: " << filename << endl;
   o_file.open(filename);
   SEM_to_Fourier(0, context, domain->u[1], data_r, data_i);
-  //for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
   for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
     for(int point_x = 0; point_x < context->nModesX; point_x++) {
       mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-      //ii = LocalIndex(context, 1, 0, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      //ii = LocalIndex(context, 1, 1, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
       o_file << mode_l << "\t" << point_y << "\t" << data_r[point_y*context->nModesX+point_x] << "\t" << data_i[point_y*context->nModesX+point_x] << "\n";
     }
   }
-  //ii = 0;
-  //while (ii < context->localSize) {
-  //  o_file << xArray[ii++] << endl;
-  //}
   o_file.close();
 
   sprintf(filename, "w.%.3d.tst", Geometry::procID());
   cout << "writing file: " << filename << endl;
   o_file.open(filename);
   SEM_to_Fourier(0, context, domain->u[2], data_r, data_i);
-  //for(ii = 0; ii < context->localSize; ii++) xArray[ii] = 0.0;
   for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
     for(int point_x = 0; point_x < context->nModesX; point_x++) {
       mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-      //ii = LocalIndex(context, 2, 0, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
-      //ii = LocalIndex(context, 2, 1, point_x, point_y);
-      //xArray[ii] = data_r[point_y*context->nModesX+point_x];
       o_file << mode_l << "\t" << point_y << "\t" << data_r[point_y*context->nModesX+point_x] << "\t" << data_i[point_y*context->nModesX+point_x] << "\n";
     }
   }
-  //ii = 0;
-  //while (ii < context->localSize) {
-  //  o_file << xArray[ii++] << endl;
-  //}
   o_file.close();
 
   // remove the unnecessary axial dofs
   //remove_axis(domain->u, data_r, data_i);
 
-  {
-    static Msys**      MMS;
-    vector<AuxField*> vort;
-    AuxField* enst;
-    AuxField* divg;
-    
-    NCOM = domain -> nVelCmpt();    // -- Number of velocity components.
-    NADV = domain -> nAdvect();     // -- Number of advected fields.
-    NDIM = Geometry::nDim();   // -- Number of space dimensions.
-    NORD = 1;                  // -- Time integration order.
-
-    vort.resize(3);
-    for(int ii = 0; ii < 3; ii++) {
-      vort[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
-    }
-    enst = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
-    divg = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
-
-    MMS = preSolve(domain);
-
-    _RemoveDivergence(domain, vort, enst, divg, MMS);
-    *domain->u[3] = *divg;
-  }
-  //if(!Geometry::procID()) cout << "dumping fields...\n";
+  _RemoveDivergence(domain);
+  if(!Geometry::procID()) cout << "dumping fields...\n";
   domain->dump();
 
   for(int field_i = 0; field_i < 3; field_i++) {
@@ -512,8 +497,6 @@ cout<<"nonzero value (imag): " << data_i[point_y*context->nModesX+point_x]
             // note that we are in \tilde{} variables, and the nyquist frequency is also 0
             //if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) xArray[ii] = 0.0;
           }
-//if(field_i == 2 && Geometry::procID() == 2 && mode_l == -3) cout << xArray[ii] << ", ";
-if(field_i == 1 && Geometry::procID() == 3 && mode_l == -2) cout << xArray[ii] << ", ";
 
           ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           if(ii > -1) {
@@ -528,8 +511,6 @@ if(field_i == 1 && Geometry::procID() == 3 && mode_l == -2) cout << xArray[ii] <
       }
     }
   }
-//if(Geometry::procID() == 2) cout << "\n";
-if(Geometry::procID() == 1) cout << "\n";
 
   delete[] xArray;
   delete[] context->el;
@@ -561,16 +542,9 @@ int main (int argc, char** argv) {
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
-//domain -> restart ();
-  //ROOTONLY domain -> report ();
-//domain->u[0]->transform(INVERSE);
-//*domain->u[0] += Femlib::value("WAVE_SPEED");
-//domain->u[0]->transform(FORWARD);
-//domain->dump();
   
   // solve the newton-rapheson problem
   rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst);
-  //delete domain;
 
   if(!Geometry::procID()) cout << "...done.\n";
 
@@ -709,55 +683,3 @@ static void preprocess (const char*       session,
   FF = new FieldForce (domain, file);
   VERBOSE cout << "done" << endl;
 }
-
-static Msys** preSolve (const Domain* D)
-// ---------------------------------------------------------------------------
-// Set up ModalMatrixSystems for each Field of D.  If iterative solution
-// is selected for any Field, the corresponding ModalMatrixSystem pointer
-// is set to zero.
-//
-// ITERATIVE >= 1 selects iterative solver for velocity components,
-// ITERATIVE >= 2 selects iterative solver for non-zero pressure Fourier modes.
-// ---------------------------------------------------------------------------
-{
-  const int_t             nmodes = Geometry::nModeProc();
-  const int_t             base   = Geometry::baseMode(); 
-  const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
-  const real_t            beta   = Femlib:: value ("BETA");
-  const vector<Element*>& E = D -> elmt;
-  Msys**                  M = new Msys* [static_cast<size_t>(NADV + 1)];
-  int_t                   i;
-
-  vector<real_t> alpha (Integration::OrderMax + 1);
-  Integration::StifflyStable (NORD, &alpha[0]);
-  real_t   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-
-  // -- Velocity systems.
-
-  for (i = 0; i < NCOM; i++) {
-    M[i] = new Msys
-      //(lambda2, beta, base, nmodes, E, D -> b[i], (itLev) ? JACPCG : DIRECT);
-      (0.0, beta, base, nmodes, E, D -> b[i], (itLev) ? JACPCG : DIRECT);
-  }
-
-  // -- Scalar system.
-
-  if (NADV != NCOM) {
-    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL");
-    M[NCOM] = new Msys
-      //(lambda2, beta, base, nmodes, E, D -> b[NCOM],(itLev < 1)?DIRECT:JACPCG);
-      (0, beta, base, nmodes, E, D -> b[NCOM],(itLev < 1)?DIRECT:JACPCG);
-  }
-
-  // -- Pressure system.
-
-  if (itLev > 1)
-    M[NADV] = new Msys
-      (0.0, beta, base, nmodes, E, D -> b[NADV], MIXED);
-  else
-    M[NADV] = new Msys
-      (0.0, beta, base, nmodes, E, D -> b[NADV], DIRECT);
-
-  return M;
-}
-
