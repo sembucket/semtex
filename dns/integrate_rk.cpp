@@ -68,7 +68,7 @@ typedef ModalMatrixSys Msys;
 
 // -- File-scope constants and routines:
 
-static int_t NDIM, NCOM, NORD, NADV;
+static int_t NDIM, NCOM, NORD, NADV, PIND, CIND;
 static bool  C3D;
 
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -86,6 +86,7 @@ AuxField**        phi;  // multi-stage pressure storage
 AuxField**        v_i;  // multi-stage predictor substep storage
 AuxField**        u_i;  // multi-stage corrector substep storage
 AuxField**        F_i;  // multi-stage forcing term storage
+AuxField**        uo;   // initial velocities
 AuxField*         tmp;  // temporary field for intermediate evaluations
 ModalMatrixSys*   mms;  // matrix system with homogeneous neumann bcs for the pressure solve
 
@@ -112,16 +113,18 @@ void init_fields(Domain* domain) {
   visc = new AuxField*[3];
   rhs  = new AuxField*[3];
   phi  = new AuxField*[3];
+  uo   = new AuxField*[3];
   for(int ii = 0; ii < 3; ii++) {
     vort[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
     visc[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
     rhs[ii]  = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
     phi[ii]  = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+    uo[ii]   = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
   }
   tmp = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
   // modal matrix system for the pressure solve;
   // hijack the scalar equation solve for this (with homogenous neumann bcs)
-  mms = new Msys(0.0, beta, base, nmodes, domain->elmt, domain->b[4], JACPCG);
+  mms = new Msys(0.0, beta, base, nmodes, domain->elmt, domain->b[3], DIRECT);
 
   alloc_rk = false;
 }
@@ -153,34 +156,39 @@ void calc_curl(AuxField** ui, AuxField** wi) {
   *wi[2] -= *du[0*3+1];
 }
 
-// explciit viscosity term as curl curl ui, wi = curl ui, vi = curl wi
-void visc_rhs(AuxField** ui, AuxField** wi, AuxField** vi) {
-  calc_curl(ui, wi);
-  calc_curl(wi, vi);
-
-  for(int ii = 0; ii < 3; ii++) {
-    vi[ii]->transform(INVERSE);
-    *vi[ii] *= ( -1.0 * Femlib::value("KINVIS") );
-    vi[ii]->transform(FORWARD);
-  }
-}
-
 // radius x divergence (for rhs of pressure poisson equation)
-void divg_rhs(AuxField** ui, AuxField* div, real_t _dt) {
+void divg_rhs(AuxField** ui, AuxField* div, bool mul_rad) {
   *div = 0.0;
 
   for(int ii = 0; ii < 3; ii++) {
     *tmp = *ui[ii];
-    if(ii < 2) tmp->mulY();
+    if( mul_rad && ii <= 1) tmp->mulY();
     tmp->gradient(ii);
+    if(!mul_rad && ii == 2) tmp->divY();
     *div += *tmp;
   }
-  div->transform(INVERSE);
-  *div *= (-1.0/_dt);
-  div->transform(FORWARD);
 }
 
-void const_mass_flux_correction(Domain* D, AuxField** ui) {
+// explciit viscosity term as curl curl ui, wi = curl ui, vi = curl wi
+void visc_rhs(AuxField** ui, AuxField** wi, AuxField** vi) {
+  // rotational component
+  calc_curl(ui, wi);
+  calc_curl(wi, vi);
+
+  // divergence component
+  divg_rhs(ui, rhs[0], false);
+  *rhs[1] = *rhs[0];
+  *rhs[2] = *rhs[0];
+
+  for(int ii = 0; ii < 3; ii++) {
+    rhs[ii]->gradient(ii);
+    if(ii == 2) rhs[ii]->divY();
+    *vi[ii] -= *rhs[ii];
+    *vi[ii] *= ( -1.0 * Femlib::value("KINVIS") );
+  }
+}
+
+void const_mass_flux_correction(Domain* D, AuxField** ui, real_t c_i) {
   real_t L_x       = Femlib::value("XMAX");
   real_t _refQ     = Femlib::value("Q_BAR");
   real_t getQ, dP;
@@ -194,7 +202,7 @@ void const_mass_flux_correction(Domain* D, AuxField** ui) {
   }
   MPI_Bcast(&dP, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  for(int ii = 0; ii < 3; ii++) ui[ii]->axpy(dP, *D->grn[ii]);
+  for(int ii = 0; ii < 3; ii++) ui[ii]->axpy(c_i * dP, *D->grn[ii]);
 }
 
 void rk_step(void (*advection) (Domain*    , 
@@ -218,116 +226,137 @@ void rk_step(void (*advection) (Domain*    ,
   const real_t b_1  = 1.0/4.0;
   const real_t b_3  = 3.0/4.0;
 
+  for(int ii = 0; ii < 3; ii++) *uo[ii] = *D->u[ii];
+
   // step 1.
   jj = 0;
   if(!Geometry::procID()) cout << "Implict RK: substep: " << jj+1 << ".....\n";
   // 1.1 explicit forcing
-  for(int ii = 0; ii < 3; ii++) *rhs[ii] = *D->u[ii];
-  if(!Geometry::procID()) cout << "\t.....advective term\n";
+  for(int ii = 0; ii < 3; ii++) *rhs[ii] = *uo[ii];
   advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  if(!Geometry::procID()) cout << "\t.......viscous term\n";
   visc_rhs(rhs, vort, visc);
   for(int ii = 0; ii < 3; ii++) {
     if(ii < 2) F_i[3*jj+ii]->divY();
+    *F_i[3*jj+ii] = 0.0;
     *F_i[3*jj+ii] += *visc[ii];
 
-    *v_i[ii] = *D->u[ii];
+    *v_i[ii] = *uo[ii];
     v_i[ii]->axpy(dt*a_21, *F_i[3*jj+ii]);
   }
   // 1.2 pressure poisson equation (rhs scaled by radius)
-  if(!Geometry::procID()) cout << "\t.........divergence\n";
-  divg_rhs(v_i, rhs[0], dt);
-  if(!Geometry::procID()) cout << "\t.....pressure solve\n";
-  D->u[3]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[3];
-  // 1.3 project onto divergence free solution
-  if(!Geometry::procID()) cout << "\t.........projection\n";
+  divg_rhs(&v_i[3*jj], rhs[0], true);
+  *rhs[0] /= dt;
+  D->u[CIND]->solve(rhs[0], mms);
+  *phi[jj] = *D->u[CIND];
+  // 1.3 apply the rotational correction to the pressure
+  divg_rhs(uo, rhs[0], false);
+  phi[jj]->axpy(+a_21*Femlib::value("KINVIS"), *rhs[0]);
+  // 1.4 project onto divergence free solution
   for(int ii = 0; ii < 3; ii++) {
-    D->u[3]->gradient(ii);
-    if(ii == 2) D->u[3]->divY();
+    *D->u[CIND] = *phi[jj];
+    D->u[CIND]->gradient(ii);
+    if(ii == 2) D->u[CIND]->divY();
     *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *D->u[3]);
+    u_i[3*jj+ii]->axpy(-dt, *D->u[CIND]);
   }
-  // 1.4 constant mass flux forcing correction
-  //if(!Geometry::procID()) cout << "\t..........mass flux\n";
-  //const_mass_flux_correction(D, &u_i[3*jj]);
-  //
+  // 1.5 constant mass flux forcing correction
+  const_mass_flux_correction(D, &u_i[3*jj], c_2);
+
   // step 2.
   jj = 1;
   if(!Geometry::procID()) cout << "Implict RK: substep: " << jj+1 << ".....\n";
   // 2.1 explicit forcing
-  if(!Geometry::procID()) cout << "\t.....advective term\n";
+  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*(jj-1)+ii];
   advection(D, B, &u_i[0], &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  if(!Geometry::procID()) cout << "\t.......viscous term\n";
   visc_rhs(&u_i[0], vort, visc);
   for(int ii = 0; ii < 3; ii++) {
     if(ii < 2) F_i[3*jj+ii]->divY();
+    *F_i[3*jj+ii] = 0.0;
     *F_i[3*jj+ii] += *visc[ii];
 
-    *v_i[ii] = *D->u[ii];
-    v_i[ii]->axpy(dt*a_31, *F_i[3*(jj-1)+ii]);
-    v_i[ii]->axpy(dt*a_32, *F_i[3*(jj+0)+ii]);
+    *v_i[3*jj+ii] = *uo[ii];
+    v_i[3*jj+ii]->axpy(dt*a_31, *F_i[3*(jj-1)+ii]);
+    v_i[3*jj+ii]->axpy(dt*a_32, *F_i[3*(jj+0)+ii]);
   }
   // 2.2 pressure poisson equation (rhs scaled by radius)
-  if(!Geometry::procID()) cout << "\t.........divergence\n";
-  divg_rhs(v_i, rhs[0], dt);
-  if(!Geometry::procID()) cout << "\t.....pressure solve\n";
-  D->u[3]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[3];
-  // 2.3 project onto divergence free solution
-  if(!Geometry::procID()) cout << "\t.........projection\n";
+  divg_rhs(&v_i[3*jj], rhs[0], true);
+  *rhs[0] /= dt;
+  D->u[CIND]->solve(rhs[0], mms);
+  *phi[jj] = *D->u[CIND];
+  // 2.3 apply the rotational correction to the pressure
+  divg_rhs(uo, rhs[0], false);
+  phi[jj]->axpy(+a_31*Femlib::value("KINVIS"), *rhs[0]);
+  divg_rhs(&u_i[0], rhs[0], false);
+  phi[jj]->axpy(+a_32*Femlib::value("KINVIS"), *rhs[0]);
+  // 2.4 project onto divergence free solution
   for(int ii = 0; ii < 3; ii++) {
-    D->u[3]->gradient(ii);
-    if(ii == 2) D->u[3]->divY();
+    *D->u[CIND] = *phi[jj];
+    D->u[CIND]->gradient(ii);
+    if(ii == 2) D->u[CIND]->divY();
     *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *D->u[3]);
+    u_i[3*jj+ii]->axpy(-dt, *D->u[CIND]);
   }
-  // 1.4 constant mass flux forcing correction
-  //if(!Geometry::procID()) cout << "\t..........mass flux\n";
-  //const_mass_flux_correction(D, &u_i[3*jj]);
+  // 2.5 constant mass flux forcing correction
+  const_mass_flux_correction(D, &u_i[3*jj], c_3);
 
   // step 3.
   jj = 2;
   if(!Geometry::procID()) cout << "Implict RK: substep: " << jj+1 << ".....\n";
   // 3.1 explicit forcing
-  if(!Geometry::procID()) cout << "\t.....advective term\n";
+  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*(jj-1)+ii];
   advection(D, B, &u_i[3], &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  if(!Geometry::procID()) cout << "\t.......viscous term\n";
   visc_rhs(&u_i[3], vort, visc);
   for(int ii = 0; ii < 3; ii++) {
     if(ii < 2) F_i[3*jj+ii]->divY();
+    *F_i[3*jj+ii] = 0.0;
     *F_i[3*jj+ii] += *visc[ii];
 
-    *v_i[ii] = *D->u[ii];
-    v_i[ii]->axpy(dt*b_1, *F_i[3*(jj-2)+ii]);
-    v_i[ii]->axpy(dt*b_3, *F_i[3*(jj+0)+ii]);
+    *v_i[3*jj+ii] = *uo[ii];
+    v_i[3*jj+ii]->axpy(dt*b_1, *F_i[3*(jj-2)+ii]);
+    v_i[3*jj+ii]->axpy(dt*b_3, *F_i[3*(jj+0)+ii]);
   }
   // 3.2 pressure poisson equation (rhs scaled by radius)
-  if(!Geometry::procID()) cout << "\t.........divergence\n";
-  divg_rhs(v_i, rhs[0], dt);
-  if(!Geometry::procID()) cout << "\t.....pressure solve\n";
-  D->u[3]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[3];
-  // 3.3 project onto divergence free solution
-  if(!Geometry::procID()) cout << "\t.........projection\n";
+  divg_rhs(&v_i[3*jj], rhs[0], true);
+  *rhs[0] /= dt;
+  D->u[CIND]->solve(rhs[0], mms);
+  *phi[jj] = *D->u[CIND];
+  // 3.3 apply the rotational correction to the pressure
+  divg_rhs(&uo[0], rhs[0], false);
+  phi[jj]->axpy(+b_1*Femlib::value("KINVIS"), *rhs[0]);
+  divg_rhs(&u_i[3], rhs[0], false);
+  phi[jj]->axpy(+b_3*Femlib::value("KINVIS"), *rhs[0]);
+  // 3.4 project onto divergence free solution
   for(int ii = 0; ii < 3; ii++) {
-    D->u[3]->gradient(ii);
-    if(ii == 2) D->u[3]->divY();
+    *D->u[CIND] = *phi[jj];
+    D->u[CIND]->gradient(ii);
+    if(ii == 2) D->u[CIND]->divY();
     *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *D->u[3]);
+    u_i[3*jj+ii]->axpy(-dt, *D->u[CIND]);
   }
-  // 1.4 constant mass flux forcing correction
-  if(!Geometry::procID()) cout << "\t..........mass flux\n";
-  const_mass_flux_correction(D, &u_i[3*jj]);
+  // 3.5 constant mass flux forcing correction
+  const_mass_flux_correction(D, &u_i[3*jj], c_4);
 
   // second order pressure
-  if(!Geometry::procID()) cout << "\t....pressure update\n";
-  *D->u[3] = 0.0;
-  D->u[3]->axpy(-3.0, *phi[jj-1]);
-  D->u[3]->axpy(+4.0, *phi[jj+0]);
+  *D->u[PIND] = 0.0;
+  D->u[PIND]->axpy(-3.0, *phi[jj-1]);
+  D->u[PIND]->axpy(+4.0, *phi[jj+0]);
+
+//for(int ii = 0; ii < 3; ii++) {
+//*tmp = *D->u[4];
+//tmp->gradient(ii);
+//if(ii == 2) tmp->divY();
+//*u_i[3*jj+ii] = *v_i[3*jj+ii];
+//u_i[3*jj+ii]->axpy(-dt, *tmp);
+//}
+//const_mass_flux_correction(D, &u_i[3*jj], c_4);
+
   // velocity udpate
-  if(!Geometry::procID()) cout << "\t....velocity update\n";
-  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
+  for(int ii = 0; ii < 3; ii++) {
+    //*D->u[ii] = 0.0;
+    //D->u[ii]->axpy(0.25, *u_i[3*(jj-2)+ii]);
+    //D->u[ii]->axpy(0.75, *u_i[3*(jj+0)+ii]);
+    *D->u[ii] = *u_i[3*(jj+0)+ii];
+  }
   if(!Geometry::procID()) cout << "\t..............done.\n";
 }
 
@@ -500,7 +529,7 @@ void diagnostics(Domain* domain) {
   // transform state back into fourier space
   for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(FORWARD);
   pres->transform(FORWARD);
-  *domain->u[3] = *pres;
+  *domain->u[PIND] = *pres;
 
   if(!Geometry::procID()) {
     file.open("production_dissipation.txt", ios::app);
@@ -531,11 +560,16 @@ void integrate (void (*advection) (Domain*    ,
 // ---------------------------------------------------------------------------
 {
   NCOM = D -> nVelCmpt();              // -- Number of velocity components.
-  NADV = D -> nAdvect();               // -- Number of advected fields.
+  //NADV = D -> nAdvect();               // -- Number of advected fields.
+  NADV = NCOM;
   NDIM = Geometry::nDim();	       // -- Number of space dimensions.
   NORD = Femlib::ivalue ("N_TIME");    // -- Time integration order.
   C3D  = Geometry::cylindrical() && NDIM == 3;
   
+  PIND = (D->hasScalar()) ? NCOM+1 : NCOM;
+  if(!Geometry::procID()) cout << "pressure index: " << PIND << endl;
+  CIND = D->nVelCmpt();
+
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
@@ -543,7 +577,7 @@ void integrate (void (*advection) (Domain*    ,
   static Msys**      MMS;
   static AuxField*** Us;
   static AuxField*** Uf;
-  Field*             Pressure = D -> u[NADV];
+  Field*             Pressure = D -> u[PIND];
   double mff_correction;
 
   if (!MMS) {			// -- Initialise static storage.
@@ -617,18 +651,18 @@ void integrate (void (*advection) (Domain*    ,
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
 
     waveProp (D, const_cast<const AuxField***>(Us), const_cast<const AuxField***>(Uf));
-    for (i = 0; i < NCOM/*NADV*/; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    for (i = 0; i < NADV; i++) AuxField::swapData (D -> u[i], Us[0][i]);
 
-    rollm     (Uf, NORD, NCOM/*NADV*/);
+    rollm     (Uf, NORD, NADV);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NADV,  Uf[0][0], MMS[NADV]);
+    Solve     (D, PIND,  Uf[0][0], MMS[PIND]);
 
     // -- Correct velocities for pressure.
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
-    for (i = 0; i < NCOM/*NADV*/; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NCOM/*NADV*/);
+    for (i = 0; i < NADV; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, NADV);
 
     // -- Re-evaluate velocity (possibly time-dependent) BCs.
     for (i = 0; i < NADV; i++)  {
@@ -643,24 +677,10 @@ void integrate (void (*advection) (Domain*    ,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NCOM/*NADV*/; i++) Solve (D, i, Uf[0][i], MMS[i]);
+    for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     D->step -= 1;
-
-
-/*
-    // read in constant forcing stokes solution from file
-    char       buf[StrMax], file[StrMax];
-    ifstream   grnfunc (strcat (strcpy (file, D -> name), ".grn"));
-    Header     header;
-    grnfunc >> header;
-    for (i = 0; i < 4; i++) {
-      grnfunc >> *D->u[i];
-      if (header.swab()) D->u[i] -> reverse();
-    }
-    for (i = 0; i < 4; i++) D->u[i] -> transform (FORWARD);
-*/
 
     // this will be broadcast to the other procs when applied
     D->Qg  = 2.0 * M_PI * D->u[0]->integral(0) / Femlib::ivalue("BETA");
@@ -677,7 +697,7 @@ void integrate (void (*advection) (Domain*    ,
 
     *Pressure = 0.0;
     for (i = 0; i < NORD; i++)
-      for (j = 0; j < NCOM/*NADV*/; j++) {
+      for (j = 0; j < NADV; j++) {
         *Us[i][j] = 0.0;
         *Uf[i][j] = 0.0;
       }
@@ -699,8 +719,9 @@ void integrate (void (*advection) (Domain*    ,
 #endif
 
     // explicit (second order pressure) time stepping for first time step
-    if(!D->step) {
-      int n_sub_steps = 10000;
+    if(!D->step && Femlib::ivalue("RK_SUBSTEP")) {
+      //int n_sub_steps = 100;
+      int n_sub_steps = Femlib::ivalue("RK_SUBSTEP");
       real_t _dt = dt / n_sub_steps;
       Femlib::value("D_T", _dt);
 
@@ -709,7 +730,7 @@ void integrate (void (*advection) (Domain*    ,
         if(!Geometry::procID()) cout << "Inital RK substep: " << ii << endl;
         rk_step(advection, D, B, A, FF);
 #ifdef ID_DIAGNOSTIC
-    diagnostics(D);
+        diagnostics(D);
 #endif
       }
 
@@ -745,15 +766,15 @@ void integrate (void (*advection) (Domain*    ,
 
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
-    for (i = 0; i < NCOM/*NADV*/; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    for (i = 0; i < NADV; i++) AuxField::swapData (D -> u[i], Us[0][i]);
 
-    rollm     (Uf, NORD, NCOM/*NADV*/);
+    rollm     (Uf, NORD, NADV);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NADV,  Uf[0][0], MMS[NADV]);
+    Solve     (D, PIND,  Uf[0][0], MMS[PIND]);
 
 #ifdef ID_DIAGNOSTIC
     // copy over before this gets stomped on by the fieldforce
-    *pres = *D->u[NADV];
+    *pres = *D->u[PIND];
 #endif
 
     // -- Correct velocities for pressure.
@@ -762,12 +783,12 @@ void integrate (void (*advection) (Domain*    ,
 
     // -- Update multilevel velocity storage.
 
-    for (i = 0; i < NCOM/*NADV*/; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NCOM/*NADV*/);
+    for (i = 0; i < NADV; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, NADV);
 
     // -- Re-evaluate velocity (possibly time-dependent) BCs.
 
-    for (i = 0; i < NCOM/*NADV*/; i++)  {
+    for (i = 0; i < NADV; i++)  {
       D -> u[i] -> evaluateBoundaries (NULL,     D -> step, false);
       D -> u[i] -> bTransform         (FORWARD);
       D -> u[i] -> evaluateBoundaries (Pressure, D -> step, true);
@@ -783,7 +804,7 @@ void integrate (void (*advection) (Domain*    ,
 
     if(D->step == 1) Femlib::ivalue("N_TIME", 1);
     if(D->step == 2) Femlib::ivalue("N_TIME", 2);
-    for (i = 0; i < NCOM/*NADV*/; i++) Solve (D, i, Uf[0][i], MMS[i]);
+    for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if(D->step == 1) Femlib::ivalue("N_TIME", NORD);
     if(D->step == 2) Femlib::ivalue("N_TIME", NORD);
     if (C3D)
@@ -801,7 +822,7 @@ void integrate (void (*advection) (Domain*    ,
       }
       MPI_Bcast(&dP, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-      for(i = 0; i < NCOM/*NADV*/; i++) D->u[i]->axpy(dP, *D->grn[i]);
+      for(i = 0; i < NADV; i++) D->u[i]->axpy(dP, *D->grn[i]);
     }
 
     // -- Process results of this step.
@@ -897,7 +918,7 @@ static void project (const Domain* D ,
   if (NADV > NCOM) *Uf[NCOM] *= Pr;
 
   for (i = 0; i < NDIM; i++) {
-    (*Us[0] = *D -> u[NADV]) . gradient (i);
+    (*Us[0] = *D -> u[PIND]) . gradient (i);
 
     if (Geometry::cylindrical() && i <  2) Us[0] -> mulY();
     Uf[i] -> axpy (beta, *Us[0]);
@@ -934,21 +955,21 @@ static Msys** preSolve (const Domain* D)
   }
 
   // -- Scalar system.
-
+/*
   if (NADV != NCOM) {
     lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL");
     M[NCOM] = new Msys
       (lambda2, beta, base, nmodes, E, D -> b[NCOM],(itLev < 1)?DIRECT:JACPCG);
   }
-
+*/
   // -- Pressure system.
 
   if (itLev > 1)
-    M[NADV] = new Msys
-      (0.0, beta, base, nmodes, E, D -> b[NADV], MIXED);
+    M[PIND] = new Msys
+      (0.0, beta, base, nmodes, E, D -> b[PIND], MIXED);
   else
-    M[NADV] = new Msys
-      (0.0, beta, base, nmodes, E, D -> b[NADV], DIRECT);
+    M[PIND] = new Msys
+      (0.0, beta, base, nmodes, E, D -> b[PIND], DIRECT);
 
   return M;
 }

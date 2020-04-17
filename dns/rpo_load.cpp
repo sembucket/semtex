@@ -69,9 +69,6 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 #define YMAX 1.0
 #define NSLICE 1
 
-typedef ModalMatrixSys Msys;
-static int_t NDIM, NCOM, NORD, NADV;
-
 void _RemoveDivergence(Domain* D) {
   int                    field_i = D->nAdvect() - 1;
   int                    np      = Geometry::nP();
@@ -79,7 +76,8 @@ void _RemoveDivergence(Domain* D) {
   const int_t            nmodes  = Geometry::nModeProc();
   const int_t            base    = Geometry::baseMode(); 
   const real_t           beta    = Femlib::value("BETA");
-  ModalMatrixSys*        mss     = new ModalMatrixSys(0, beta, base, nmodes, D->elmt, D->b[field_i], JACPCG);
+  //ModalMatrixSys*        mss     = new ModalMatrixSys(0, beta, base, nmodes, D->elmt, D->b[field_i], JACPCG);
+  ModalMatrixSys*        mss     = new ModalMatrixSys(0, beta, base, nmodes, D->elmt, D->b[field_i], DIRECT);
   vector<AuxField*>      tmp;
   AuxField*              div;
 
@@ -97,9 +95,10 @@ void _RemoveDivergence(Domain* D) {
   // compute the divergence (scaled by the radius)
   *div = 0.0;
   for(int ii = 0; ii < 3; ii++) {
+    *D->u[ii] = *tmp[ii];
     if(ii < 2) D->u[ii]->mulY();
     D->u[ii]->gradient(ii);
-    *div -= *D->u[ii];
+    *div += *D->u[ii];
   }
 
   D->u[field_i]->solve(div, mss);
@@ -127,6 +126,21 @@ void _RemoveDivergence(Domain* D) {
     if(ii == 2) div->divY();
     *D->u[ii] -= *div;
   }
+
+  // manually compute the divergence and put this in the pressure field (for testing)
+  *div = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    *tmp[ii] = *D->u[ii];
+    tmp[ii]->gradient(ii);
+    if(ii == 2) tmp[ii]->divY();
+    *div += *tmp[ii];
+    if(ii == 1) {
+      *tmp[ii] = *D->u[ii];
+      tmp[ii]->divY();
+      *div += *tmp[ii];
+    }
+  }
+  *D->u[4] = *div;
 }
 
 void remove_axis(vector<Field*> field, real_t* data_r, real_t* data_i) {
@@ -377,8 +391,8 @@ for(int field_i = 0; field_i < 3; field_i++) {
         } 
         if(field_i == 1) {
           uBar->plane(pl_i)[el_i*np2+pt_i] = 0.2*sin(2.0*M_PI*domain->elmt[el_i]->_ymesh[pt_i]);
-        } 
-        if(field_i == 2 && Geometry::procID() == 3 && pl_i == 0) {
+        }
+        if(field_i == 2 && Geometry::procID() == 2 && pl_i == 0) {
           uBar->plane(pl_i)[el_i*np2+pt_i] = domain->elmt[el_i]->_ymesh[pt_i];//0.3*cos( (2.0*M_PI*(Geometry::procID()+pl_i)) / (2.0*Geometry::nProc()) );
         }
         else uBar->plane(pl_i)[el_i*np2+pt_i] = 0.0;
@@ -476,7 +490,7 @@ for(int field_i = 0; field_i < 3; field_i++) {
   // remove the unnecessary axial dofs
   //remove_axis(domain->u, data_r, data_i);
 
-  _RemoveDivergence(domain);
+  if(Femlib::ivalue("REMOVE_DIVERGENCE")) _RemoveDivergence(domain);
   if(!Geometry::procID()) cout << "dumping fields...\n";
   domain->dump();
 
