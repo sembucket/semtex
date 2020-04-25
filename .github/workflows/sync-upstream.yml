@@ -1,11 +1,12 @@
 #
 # Sync with https://gitlab.erc.monash.edu.au/sembucket/semtex
-# at noon daily and when there is a pull request
+# At noon daily or when there is a pull request on master
 #
 
 name: Sync upstream Gitlab
 
 on:
+  push:
   pull_request:
     branches:
       - master
@@ -20,8 +21,6 @@ jobs:
     - id: checkout_mirror_upstream
       name: Checkout 'upstream' branch
       uses: actions/checkout@v2
-      with:
-        ref: master
 
     - id: sync_upstream_remote
       name: Sync 'upstream' remote
