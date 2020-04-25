@@ -1,0 +1,32 @@
+#
+# Sync with https://gitlab.erc.monash.edu.au/sembucket/semtex
+# at noon daily and when there is a pull request
+#
+
+name: Sync upstream Gitlab
+
+on:
+  pull_request:
+    branches:
+      - master
+  schedule:
+  - cron:  '* 12 * * *'
+
+jobs:
+  sync_upstream:
+    name: Sync Upstream with Mirror
+    runs-on: ubuntu-latest
+    steps:
+    - id: checkout_mirror_upstream
+    - name: Checkout 'upstream' branch
+      uses: actions/checkout@v2
+      with:
+        ref: upstream/master
+      run: |
+        echo "Checked out 'upstream' branch in GitHub mirror repository"
+
+    - id: add_upstream_remote
+    - name: Add 'upstream' remote
+      run: |
+        chmod +x .github/workflows/sync-upstream.sh
+        .github/workflows/sync-upstream.sh
