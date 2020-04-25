@@ -1,11 +1,10 @@
 #!/bin/csh
 #
-#  usage:save [options] session
+# Usage: save [options] session
 #
-#  [options]:
+# [options]:
 #
 #	-chk	If the field file is empty save a checkpoint file
-#
 #
 #  This is a simple script to cycle through a set of simulation files.
 #  It saves the current set in the subdirectory "Runs" using a sequence
@@ -25,6 +24,8 @@
 #  $ssn.mdl             Modal energies              *
 #  $ssn.log             Log file                    *
 #  ------------------------------------------------------
+#
+# $Id: save,v 9.1 2019/05/30 06:36:12 hmb Exp $
 
 if ($#argv < 1) then
 	echo "usage: save [options] session"

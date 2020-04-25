@@ -1,12 +1,12 @@
 C12345678901234567890123456789012345678901234567890123456789012345678901
 C
-C     $Id$
+C     $Id: xmxm.f,v 9.1 2019/05/30 06:36:13 hmb Exp $
 C
 C     Matrix-matrix, matrix-vector multiply routines,
 C     designed to be called from C.
 C     E.g. where C = A * B; the FORTRAN equivalent is C' = B' * A'.
 C
-C     Copyright (c) 1998 <--> $Date$, Hugh Blackburn
+C     Copyright (c) 1998 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
 C
 C     This file is part of Semtex.
 C 

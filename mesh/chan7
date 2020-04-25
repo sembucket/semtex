@@ -16,11 +16,7 @@
 </USER>
 
 <TOKENS>
-	AVERAGE   = 0
-	CHKPOINT  = 1
 	ITERATIVE = 0
-
-	FFX       = 3.08e-3
 	KINVIS    = 303e-6
 	
 	D_T       = 0.005
@@ -34,6 +30,10 @@
 	IO_CFL    = 32
 	IO_FLD    = N_STEP
 </TOKENS>
+
+<FORCE>
+	CONST_X       = 3.08e-3
+</FORCE>
 
 <GROUPS NUMBER=1>
 	1	w	wall

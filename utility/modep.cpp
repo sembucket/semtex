@@ -2,7 +2,7 @@
 // modep.cpp: project velocity data in a nominated Fourier mode onto a
 // spatial mode shape supplied in a file, return scalar value of integral.
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -44,7 +44,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: modep.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

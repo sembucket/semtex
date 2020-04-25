@@ -1,7 +1,7 @@
 /*****************************************************************************
  * TOPRE.C: make a NEKTON preprocessor input file. (See NEK5000 site.)
  *
- * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
  *
  * Generate, from an indexed list of 2D points and a list of index
  * quadruplets, the element-description part of a text file to be used as
@@ -50,7 +50,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: topre.c,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 
 

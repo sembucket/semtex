@@ -2,7 +2,7 @@
  * chop: read an input file and reproduce a specified number of lines on
  * standard output.
  * 
- * Copyright (c) 1990 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1990 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
  *
@@ -33,7 +33,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: chop.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

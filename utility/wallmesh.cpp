@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // wallmesh.cpp
 //
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2004 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -35,7 +35,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: wallmesh.cpp,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <sem.h>
 

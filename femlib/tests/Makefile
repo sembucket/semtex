@@ -1,7 +1,9 @@
 ##############################################################################
-# Compile test codes for femlib library functions.
+# Compile test codes for femlib library functions.  These are intended
+# for developer-level debugging.  Please check within the specific
+# codes for purpose.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:06 hmb Exp $
 ##############################################################################
 
 SEM  = ../..

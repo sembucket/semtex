@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-// domain.C: implement domain class functions.
+// domain.cpp: implement domain class functions.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -22,7 +22,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: domain.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 
@@ -31,13 +31,24 @@ Domain::Domain (FEML*             F,
 		vector<Element*>& E,
 		BCmgr*            B) :
 // ---------------------------------------------------------------------------
-// Construct a new Domain with all user Fields.
-//
-// By convention, all Fields stored in the Domain have
-// single-character lower-case names.  On input, the names of the
-// Fields to be created are stored in the string "flds".  See the file
-// field.C for significance of the names.
-//
+// Construct a new Domain with all user Fields for use by a time
+// integrator or elliptic solver (more generally, variables that have
+// to satisfy a PDE and BCs).  By convention, all Fields stored in the
+// Domain have single-character lower-case names.  On input, the names
+// of the Fields to be created are stored in the string "flds", which
+// is supplied from input class B (obtained from the names in the
+// FIELDS section of a session file).  At present, a Domain can
+// contain ordered storage for one vector field (components u v,
+// optionally w), an advected scalar field c, and a constraint scalar
+// field p, whose gradient keeps the vector field divergence free
+// (i.e. for an incompressible flow, p is the reduced pressure ---
+// pressure divided bu density).  We also allow just a scalar field
+// (so that the Domain class can be used with an elliptic
+// solver). Hence legal combinations of Fields declared in a session
+// file are: c, uvp, uvwp, uvcp, uvwcp (but I/O field dumps are
+// allowed other variables and orderings).  We check/enforce these
+// constraints within this constructor.
+// 
 // No initialization of Field MatrixSystems.
 // ---------------------------------------------------------------------------
   elmt (E)
@@ -55,6 +66,24 @@ Domain::Domain (FEML*             F,
 
   strcpy ((field = new char [strlen (B -> field()) + 1]), B -> field());
   nfield = strlen (field);
+
+  if ((nfield < 1) || (nfield == 2))
+    message (routine, "session must declare 1, 3, 4 or 5 fields", ERROR);
+
+  if ((nfield == 1) && (field[0] != 'c'))
+    message (routine, "session with 1 field: must be c", ERROR);
+
+  if ((nfield == 3) && (strcmp (field, "uvp")))
+    message (routine, "session with 3 fields: must be uvp", ERROR);
+
+  if ((nfield == 4) && ((strcmp(field, "uvwp") && (strcmp(field, "uvcp")))))
+    message (routine, "session with 4 fields: must be uvwp or uvcp", ERROR);
+
+  if ((nfield == 5) && (strcmp (field, "uvwcp")))
+    message (routine, "session with 5 fields: must be uvwcp", ERROR);
+
+  if (nfield > 5)
+    message (routine, "session has too many fields", ERROR);
   
   VERBOSE cout << routine << ": Domain will contain fields: " << field << endl;
 

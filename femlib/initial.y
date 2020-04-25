@@ -11,7 +11,7 @@
  * Hashing code from Chapter 6 of "The C Programming Language", 2nd Edn,
  * by Kernighan & Ritchie, Prentice-Hall 1988.
  *
- * Copyright (c) 1994 <--> $Date$, 
+ * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:06 $, 
  *   Ron Henderson, Hugh Blackburn, Spencer Sherwin
  *
  * Summary

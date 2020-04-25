@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // phase.cpp: do operations on 3D data file in phase/Fourier space.
 //
-// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2002 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // This file is part of Semtex.
 // 
@@ -35,7 +35,7 @@
 // standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: phase.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

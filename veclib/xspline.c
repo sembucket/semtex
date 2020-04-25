@@ -23,7 +23,7 @@
  *
  * NB: the vector x must be ordered such that x[0] < x[1] < ... < x[n-1];
  *
- * $Id$
+ * $Id: xspline.c,v 9.1 2019/05/30 06:36:14 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

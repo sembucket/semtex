@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.cpp: utility to generate mesh nodes from mesh description file.
 //
-// Copyright (c) 1995 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1995 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Usage: meshpr [options] file
 //   options:
@@ -42,7 +42,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: meshpr.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <cstdlib>
 #include <iostream>

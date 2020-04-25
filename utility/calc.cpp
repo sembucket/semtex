@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // calc.cpp: a basic calculator using the function parser.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Usage: calc [-h] [file]
 //
@@ -24,7 +24,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$"; 
+static char RCS[] = "$Id: calc.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $"; 
 
 #include <cstdio>
 #include <cstdlib>
@@ -79,10 +79,11 @@ static void getargs (int       argc ,
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
+      cerr << "-- Preset internal variables:"  << endl;
+      yy_show ();
+      cerr << endl;
       cerr << "-- Calculator operators, functions and procedures:" << endl;
       yy_help ();
-      cerr << endl << "-- Preset internal variables:"  << endl;
-      yy_show ();
       exit (EXIT_SUCCESS);
       break;
     default:

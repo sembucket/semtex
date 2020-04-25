@@ -5,7 +5,7 @@
  *
  * NB this version does not symmetrise the Fourier-direction stress.
  *
- * Copyright (c) 2011 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 2011 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -33,7 +33,7 @@
  *
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: wavestress.c,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

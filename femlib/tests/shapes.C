@@ -2,7 +2,7 @@
 // shapes.C: print out shape functions evaluated at points equispaced
 // on [-1, 1].
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:07 $, Hugh Blackburn
 //
 // Usage: shapes -n <num> -i <num> -t <type>
 // where
@@ -16,7 +16,7 @@
 // NB: the equivalent polynomial order is ONE LESS THAN the number of
 // shape functions in the case of Lagrange interpolants.
 //
-// $Id$
+// $Id: shapes.C,v 9.1 2019/05/30 06:36:07 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
@@ -28,7 +28,7 @@
 using namespace std;
 
 #include <cfemdef.h>
-#include <Array.h>
+//#include <Array.h>
 #include <veclib.h>
 #include <femlib.h>
 #include <blas.h>
@@ -112,7 +112,7 @@ int main (int    argc,
     double** IT = dmatrix (0, ns-1, 0, ni-1);
 
     Femlib::GLLzw       (ns, z, w);
-    Femlib::LagrangeInt (ns, z, ni, x, II, IT);
+    Femlib::LagrangeInt (ns, z, ni, x, II[0], IT[0]);
 
     for (j = 0; j < ns; j++)
       for (i = 0; i < ni; i++) s[i][j] = II[i][j];

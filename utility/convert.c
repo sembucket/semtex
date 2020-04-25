@@ -1,7 +1,7 @@
 /*****************************************************************************
  * convert:  Format conversion program for sem-compatible field files.
  *
- * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * USAGE: convert [-h] [-format] [-v] [-n dump] [-o output] [-z] [input[.fld]
  *
@@ -54,7 +54,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: convert.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

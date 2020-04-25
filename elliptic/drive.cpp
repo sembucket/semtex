@@ -2,7 +2,7 @@
 // drive.C: compute solution to elliptic problem, optionally compare to
 // exact solution (see getoptions(), below).
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994<-->$Date: 2019/05/30 06:36:05 $, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -50,7 +50,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: drive.cpp,v 9.1 2019/05/30 06:36:05 hmb Exp $";
 
 #include <sem.h>
 
@@ -215,7 +215,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building forcing ...";
 
-  forcing = new AuxField(new real_t[(size_t)Geometry::nTotProc()],nz,elmt,'f');
+  forcing = new AuxField(new real_t[(size_t)Geometry::nTotProc()],
+			 Geometry::nZProc(), elmt, 'f');
 
   VERBOSE cout << "done" << endl;
 }
@@ -272,7 +273,7 @@ static void getforcing (const char* session  ,
   const char routine[] = "getforcing";
   char       restartfile[StrMax];
   
-  ROOTONLY cout << "-- Forcing          : ";
+  ROOTONLY cout << "-- Forcing                 : ";
   ifstream file (strcat (strcpy (restartfile, session), ".frc"));
 
   if (file) {

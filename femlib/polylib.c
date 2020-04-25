@@ -13,7 +13,7 @@
 /*
 LIBRARY ROUTINES FOR ORTHOGONAL POLYNOMIAL CALCULUS AND INTERPOLATION
 
-  Copyright (c) 1995 <--> $Date$, Spencer Sherwin
+  Copyright (c) 1995 <--> $Date: 2019/05/30 06:36:06 $, Spencer Sherwin
 
   Aeronautics, Imperial College London
   
@@ -834,7 +834,7 @@ void Imgrjp (double* im   ,
 
 /** 
     \brief Interpolation Operator from Gauss-Lobatto-Jacobi points
-    to an arbitrary distrubtion at points \a zm
+    to an arbitrary distribution at points \a zm
                                                                         
     \li Computes the one-dimensional interpolation matrix, \a im, to
     interpolate a function from at Gauss-Lobatto-Jacobi distribution of

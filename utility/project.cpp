@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.cpp:  Project solution files to different interpolation orders.
 //
-// Copyright (c) 1996 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -45,7 +45,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: project.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

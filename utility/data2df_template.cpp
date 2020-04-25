@@ -3,7 +3,7 @@
 // geometric information) and output.  This is a template file that
 // can be a starting point for further data processing.
 //
-// Copyright (c) 2008 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2008 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -15,7 +15,7 @@
 // standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: data2df_template.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

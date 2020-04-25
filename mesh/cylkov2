@@ -1,3 +1,4 @@
+##############################################################################
 # -- Kovasznay flow, solved in cylindrical coordinates, shifted axis.
 ##############################################################################
 # Kovasznay flow has the exact solution
@@ -13,6 +14,10 @@
 #
 # This can be transformed to polar coordinates, with arbitrary angular
 # offset A and translational offset D.
+#
+# This is the session file corresponding to Fig 4(a) Blackburn &
+# Sherwin (2004) J Comput Phys 197(2):759--778.
+##############################################################################
 
 <USER>
 u = 1-exp(LAMBDA*x)*cos(TWOPI*(y*cos(z+A)+D))
@@ -52,10 +57,10 @@ p = (1-exp(LAMBDA*x))/2
 <D> w = -LAMBDA/(TWOPI)*exp(LAMBDA*x)*sin(TWOPI*(y*cos(z+A)+D))*sin(z+A) </D>
 <H> p </H>
 2       a       4
-<A>     u = 0.0 </A>
-<A>     v = 0.0 </A>
-<A>     w = 0.0 </A>
-<A>     p = 0   </A>
+<A>     u  </A>
+<A>     v  </A>
+<A>     w  </A>
+<A>     p  </A>
 </BCS>
 
 <NODES NUMBER=12>

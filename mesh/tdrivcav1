@@ -12,23 +12,24 @@
 	p = 0.0
 </USER>
 
+<FORCE>
+	BOUSSINESQ_TREF    = 0.0
+	BOUSSINESQ_BETAT   = RAYLEIGH*PRANDTL
+	BOUSSINESQ_GRAVITY = 1.0
+	BOUSSINESQ_GY      = -1.0
+</FORCE>
+
 <TOKENS>
 	N_TIME	 = 1
 	N_P	 = 10
 	N_STEP	 = 5000
 	IO_FLD   = 1000
 	D_T	 = 0.0008
-	T_REF    = 0.0
 	T_MAX    = 1.0
 	T_MIN	 = 0.0
 	PRANDTL  = 0.71
 	RAYLEIGH = 1.0e4
-	GRAVITY  = 1.0
 	KINVIS   = PRANDTL
-	BETA_T   = RAYLEIGH*PRANDTL
-	g_1      =  0.0
-	g_2      = -1.0
-	g_3      =  0.0
 </TOKENS>
 
 <GROUPS NUMBER=3>
@@ -42,17 +43,17 @@
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
 			<D>	c = T_MAX	</D>
-			<H>	p = 0.0		</H>
+			<H>	p 		</H>
 	2	c	4
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
 			<D>	c = T_MIN	</D>
-			<H>	p = 0.0		</H>
+			<H>	p 		</H>
 	3	i	4
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
 			<N>	c = 0.0		</N>
-			<H>	p = 0.0		</H>
+			<H>	p 		</H>
 </BCS>
 
 <NODES NUMBER=9>

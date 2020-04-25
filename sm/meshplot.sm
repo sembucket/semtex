@@ -14,7 +14,7 @@ meshplot 12	# Plot an SEM mesh
 		# _mesh_x, _mesh_y, _mesh_nel, _mesh_nr, _mesh_nr
 		#
 		# Ron Henderson                           31 October 1991
-		# $Id$
+		# $Id: meshplot.sm,v 9.1 2019/05/30 06:36:10 hmb Exp $
 		DATA $1
 		READ { _nr 1 _ns 2 _nz 3 _nel 4 }
 		DEFINE _mesh_nr  (_nr)

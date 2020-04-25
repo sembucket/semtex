@@ -1,7 +1,7 @@
 /*****************************************************************************
  * filter.c
  *
- * Copyright (c) 1999<-->$Date$, Hugh Blackburn
+ * Copyright (c) 1999<-->$Date: 2019/05/30 06:36:06 $, Hugh Blackburn
  *
  * This file is part of Semtex.
  * 
@@ -22,7 +22,7 @@
  *
  * Routines for computing spectral filters.
  *
- * $Id$
+ * $Id: filter.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <math.h>

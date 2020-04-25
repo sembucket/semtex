@@ -5,7 +5,7 @@
 // session file, mass matrix values include weighting by radius
 // (y). Printout in ASCII.
 //
-// Copyright (c) 2013 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2013 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -33,7 +33,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: massmat.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

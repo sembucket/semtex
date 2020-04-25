@@ -1,7 +1,7 @@
 /******************************************************************************
  * slit.c: reproduce specified columns of input on output.
  *
- * Copyright (c) 1990 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1990 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * Usage: slit [-c <colstr>] [file], where <colstr> is a
  * comma-separated list of column numbers.
@@ -25,7 +25,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: slit.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void slit     (FILE *fp, int n, int *col);
 int  get_line (FILE *fp, char coltext[][MAXSTR], int *nwords);
 
 
-main(int argc, char *argv[])
+int main (int argc, char *argv[])
 /* ========================================================================= *
  * This does adminstration for the routines which do all the work.
  * ========================================================================= */
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
       }
     }
   }
-  exit(0);
+  exit (0);
 }
 
 

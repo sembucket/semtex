@@ -1,7 +1,7 @@
 /*****************************************************************************
  * avgdump.c:  Compute (running) averages of field files.
  *
- * Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * SYNOPSIS
  * --------
@@ -27,7 +27,8 @@
  *
  * The amounts to first-order recursive filtering with a time constant
  * -ln(1 - eps).  In this case the step number in the old file is not
- * used although it gets updated and stored.
+ * used although it gets updated and stored.  For this mode, the
+ * command-line initialization flag "-i" is not needed (is ignored).
  *
  * USAGE
  * -----
@@ -56,7 +57,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: avgdump.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>

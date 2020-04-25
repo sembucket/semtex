@@ -15,7 +15,7 @@ LL	RULE
 
 ** floating point parameters
 
-0.01	DELTAT
+0.01	D_T
 1	KINVIS
 
 ** boundary conditions

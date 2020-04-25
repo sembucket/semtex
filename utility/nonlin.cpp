@@ -2,8 +2,7 @@
 // nonlin.cpp: given a field file containing velocity data u, compute
 // and output the nonlinear terms u.grad(u), in physical space.
 //
-// Copyright (c) 2016 <--> $Date$,
-//   Hugh Blackburn
+// Copyright (c) 2016 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -54,7 +53,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: nonlin.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 
@@ -303,7 +302,7 @@ static void getDump (istream&           file,
     }
   }
 
-  if (file.bad()) message (prog, "problem reading input data", ERROR);
+  if (file.fail ()) message (prog, "problem reading input data", ERROR);
 
   // -- Clear all nonlinear storage areas.
 

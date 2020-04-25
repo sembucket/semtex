@@ -2,7 +2,7 @@
  * noiz.c: add a random Gaussian perturbation to a velocity field.
  *         Optionally filter out a named mode.
  *
- * Copyright (c) 1996 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -38,7 +38,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: noiz.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

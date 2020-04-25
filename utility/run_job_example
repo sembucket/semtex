@@ -5,6 +5,8 @@
 # where the parameter to be changed in each session file ($SSN) is
 # given by the numeric name of the directory in which job is to be
 # run.
+#
+# $Id: run_job_example,v 9.1 2019/05/30 06:36:12 hmb Exp $
 ##############################################################################
 
 SSN=Msten50_50D

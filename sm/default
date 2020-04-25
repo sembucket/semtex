@@ -1,4 +1,4 @@
-# $Id$
+# $Id: default,v 9.1 2019/05/30 06:36:10 hmb Exp $
 
 startup2        # Macro executed whenever SM starts
 		ptype 1 0

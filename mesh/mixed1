@@ -5,6 +5,7 @@
 <USER>
 	Exact    4+14.75*y-10*y*y
 	Forcing  -20
+	c =      4+14.75*y-10*y*y	
 </USER>
 
 <FIELDS>

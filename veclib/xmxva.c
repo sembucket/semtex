@@ -17,7 +17,7 @@
  *
  * Consider BLAS2 xgemv as alternatives.
  *
- * $Id$
+ * $Id: xmxva.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-// probe.C: extract results from a field file at a set of 3D points.
+// probe.cpp: extract results from a field file at a set of 3D points.
 //
-// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Synopsis
 // --------
@@ -84,7 +84,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: probe.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 #include <libgen.h>

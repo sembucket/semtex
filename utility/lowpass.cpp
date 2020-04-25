@@ -3,7 +3,7 @@
 // space.  2D polynomial filtering is carried out in the tensor-product
 // modal polynomial space. 
 //
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2004 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -38,7 +38,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: lowpass.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

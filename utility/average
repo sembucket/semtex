@@ -3,7 +3,7 @@
 # average: compute the average values of each column of input, print up.
 # Maximum of 128 columns.  Number of columns on each line assumed identical.
 #
-# $Id$
+# $Id: average,v 9.1 2019/05/30 06:36:12 hmb Exp $
 
 awk '
 BEGIN { for (i = 1; i <= 128; i++) sum[i] = 0.0 }

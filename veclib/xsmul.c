@@ -1,7 +1,7 @@
 /*****************************************************************************
  * xsmul:  y[i] = alpha * x[i].
  *
- * $Id$
+ * $Id: xsmul.c,v 9.1 2019/05/30 06:36:14 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>
@@ -12,7 +12,7 @@
 #endif
 
 void dsmul (int_t n, double alpha, const double* x, int_t incx,
-                                           double* y, int_t incy)
+                                         double* y, int_t incy)
 {
   register int_t i;
 
@@ -24,7 +24,7 @@ void dsmul (int_t n, double alpha, const double* x, int_t incx,
 
 
 void ismul (int_t n, float alpha, const float* x, int_t incx,
-                                          float* y, int_t incy)
+                                        float* y, int_t incy)
 {
   register int_t i;
 
@@ -36,7 +36,7 @@ void ismul (int_t n, float alpha, const float* x, int_t incx,
 
 
 void ssmul (int_t n, float alpha, const float* x, int_t incx,
-                                          float* y, int_t incy)
+                                        float* y, int_t incy)
 {
   register int_t i;
 

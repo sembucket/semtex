@@ -3,7 +3,7 @@
 // geometric information.  Also included in this file are Header class
 // definitions for IO & maintenance of input file information.
 //
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2004 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -24,7 +24,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: data2df.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

@@ -1,3 +1,13 @@
+#!/bin/bash
+#
+# Print a sequence of numbers from "start" to "end" in steps "inc",
+# using awk.  This functionality is usually present with the shell
+# utility seq, but that does not always exist.
+#
+# Usage: index <start> <end> <inc>
+#
+# $Id: index,v 9.1 2019/05/30 06:36:12 hmb Exp $
+
 echo $1 $2 $3 | awk '
   {
 	start = $1 ;

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // edge.C: implement element-edge operators.
 //
-// Copyright (c) 2003 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2003 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // Edges, like boundaries (to which they contribute) typically belong
 // to a named group -- regular element sides generally do not.  This
@@ -28,7 +28,7 @@
 // 02110-1301 USA.
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: edge.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 

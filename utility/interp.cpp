@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.cpp: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -57,7 +57,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: interp.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <ctime>
 #include <sem.h>

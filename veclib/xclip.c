@@ -4,7 +4,7 @@
  * xclipup: clip on lower limit alpha:   y[i] = MAX(x[i],alpha).
  * xclipdn: clip on upper limit alpha:   y[i] = MIN(x[i],alpha).
  *
- * $Id$
+ * $Id: xclip.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

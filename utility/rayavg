@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 #
-# rayavg: generate field-dump averages along rays in the dx,dy-direction
-# emanating from an x-y line. It is assumed that the z-direction variations
-# have already been discarded using project -z1.
+# rayavg: generate field-dump averages along rays in the
+# dx,dy-direction emanating from an x-y line. It is assumed that the
+# z-direction variations have already been discarded using project
+# -z1.  The field-dump should be in binary format (the default).
 #
 # usage: rayavg npts navg x1 y1 x2 y2 dx dy session file
 #
@@ -18,7 +19,7 @@
 # Npts and navg must each be at least 2.  No traps are set to
 # ensure that all the generated points lie within the data domain.
 #
-# $Id$
+# $Id: rayavg,v 9.1 2019/05/30 06:36:12 hmb Exp $
 
 case $# in
 10) ;;

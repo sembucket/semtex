@@ -8,7 +8,7 @@
 // -p <num> ... supplies the filter order
 // -a <num> ... supplies attenuation factor at high frequencies
 //
-// $Id$
+// $Id: testBVD.C,v 9.1 2019/05/30 06:36:07 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

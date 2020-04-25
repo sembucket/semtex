@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // enumerate.cpp:  utility to generate mesh numbering from session file.
 //
-// Copyright (c) 1995 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1995 <--> $Date: 2019/06/22 08:43:26 $, Hugh Blackburn
 //
 // Usage: enumerate [options] file
 //   options:
@@ -12,12 +12,7 @@
 //
 // Special action may need to be taken to generate numbering schemes
 // for cylindrical coordinate flow problems.  See the discussion in
-// header for field.C, and for routine Mesh::buildMask in mesh.C.
-//
-// Divergence problems sometimes arise when the highest numbered
-// zero-mode pressure node occurs on the axis in 3D cylindrical
-// simulations.  The code attempts to fix this problem, and lets you
-// know if it can't.
+// header for field.cpp, and for routine Mesh::buildMask in mesh.cpp.
 //
 // --
 // This file is part of Semtex.
@@ -38,7 +33,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: enumerate.cpp,v 9.2 2019/06/22 08:43:26 hmb Exp $";
 
 #include <cstdlib>
 #include <cstring>
@@ -83,17 +78,15 @@ public:
   vector<int_t> axside;
 
   int_t sortGid         (int_t*, int_t*);
-  void  renumber        (const int_t, const int_t = 0);
+  void  renumber        (const int_t);
   int_t buildAdjncy     (vector<int_t>*)                              const;
   void  fillAdjncy      (vector<int_t>*, int_t*, int_t*, const int_t) const;
   void  connectivSC     (vector<int_t>*, const int_t*,
 			 const int_t*, const int_t)                   const;
   int_t globalBandwidth ()                                            const;
-  bool  highAxis        ()                                            const;
   int_t bandwidthSC     (const int_t*, const int_t*, const int_t)     const;
-  void  rebuild         (FEML*, const int_t);
-
 };
+
 
 static char        prog[] = "enumerate";
 static int_t       verb   = 0;
@@ -126,7 +119,7 @@ int main (int    argc,
 {
   char   *session = 0, field[StrMax], axistag;
   FEML*  file;
-  int_t  np = 0, opt = 1;
+  int_t  np = 0, opt = 3;
   bool   cyl3D = false;
 
   Femlib::initialize (&argc, &argv);
@@ -178,19 +171,6 @@ int main (int    argc,
     }
   }
 
-  // -- Potentially have to fix numbering for cylindrical mode-zero pressure.
-
-  if (axistag) {
-    for (i = 0; i < k; i++)
-      if (strchr (&S[i] -> fields[0], 'p')) {
-	Nsys* pressure = S[i];
-	if (!Veclib::any (pressure -> nbndry, &pressure -> bndmsk[0], 1)) {
-	  pressure -> rebuild (file, clamp (static_cast<int>(opt), 2, 3));
-	  break;
-	}
-      }
-  }
-
   printup (field, S, k);
 
   Femlib::finalize();
@@ -213,7 +193,7 @@ static void getargs (int    argc   ,
                  "  -h       ... display this message\n"
                  "  -v       ... set verbose output\n"
 		 "  -n N     ... override number of element knots to be N\n"
-		 "  -O [0-3] ... bandwidth optimization level [Default: 1]\n";
+		 "  -O [0-3] ... bandwidth optimization level [Default: 3]\n";
   char err[StrMax];
   char c;
 
@@ -691,8 +671,7 @@ int_t Nsys::sortGid (int_t* bmap,
 }
 
 
-void Nsys::renumber (const int_t optlevel,
-		     const int_t penalty )
+void Nsys::renumber (const int_t optlevel)
 // ---------------------------------------------------------------------------
 // From the initial ordering specified in bndmap, use RCM to generate
 // a reduced-bandwidth numbering scheme.  Reload into bndmap.
@@ -774,7 +753,6 @@ void Nsys::renumber (const int_t optlevel,
       Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
 
       BWtest = globalBandwidth();
-      if (penalty && highAxis()) BWtest += nglobal;
       if (BWtest < BWmin) {
 	BWmin = BWtest;
 	best  = rtest;
@@ -801,7 +779,6 @@ void Nsys::renumber (const int_t optlevel,
       Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
 
       BWtest = globalBandwidth();
-      if (penalty && highAxis()) BWtest += nglobal;
       if (BWtest < BWmin) {
 	BWmin = BWtest;
 	best  = root;
@@ -821,9 +798,6 @@ void Nsys::renumber (const int_t optlevel,
   Veclib::sadd (nsolve, -1, perm, 1, perm, 1);
   for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
   Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
-
-  if (penalty && highAxis())
-    message (prog, "Highest numbered pressure node remains on axis", WARNING);
 
   if (verb) cout << endl;
 }
@@ -940,7 +914,6 @@ int_t Nsys::globalBandwidth () const
 }
 
 
-
 int_t Nsys::bandwidthSC (const int_t* bmap,
 			 const int_t* mask,
 			 const int_t  next) const
@@ -961,105 +934,4 @@ int_t Nsys::bandwidthSC (const int_t* bmap,
   }
 
   return Max - Min;
-}
-
-
-void Nsys::rebuild (FEML*       file  ,
-		    const int_t optlev)
-// ---------------------------------------------------------------------------
-// The pressure numbering scheme gets rebuilt if the highest-numbered
-// pressure node lies on the axis.  Before getting here, we are sure
-// that this is the appropriate Nsys for the zero-mode pressure and
-// has no essential BCs, so pressure system is singular.
-// ---------------------------------------------------------------------------
-{
-  // -- Build a table of elements and sides that touch the axis.
-  
-  const char  axisBC = axial (file);
-  const int_t nsurf (file->attribute ("SURFACES", "NUMBER"));
-  char        tagc, tag[StrMax], err[StrMax];
-  int_t       i, j, id, el, si, naxis = 0;
-
-  for (i = 0; i < nsurf; i++) {
-    while ((tagc = file->stream().peek()) == '#') // -- Skip comments.
-      file->stream().ignore (StrMax, '\n');
-    
-    file->stream() >> id >> el >> si >> tag;
-    if (strchr (tag, '<') && strchr (tag, '>') && strlen (tag) == 3) {
-      if (tag[1] == 'B') {
-	file->stream() >> tagc;
-	if (tagc == axisBC) naxis++;
-      }
-    } else {
-      sprintf (err, "unrecognized surface tag format: %s", tag);
-      message (prog, err, ERROR);
-    }
-
-    file->stream().ignore (StrMax, '\n');
-  }
-
-  if (!naxis) return;
-
-  axelmt.resize (naxis);
-  axside.resize (naxis);
-
-  file->attribute ("SURFACES", "NUMBER");
-
-  for (j = 0, i = 0; i < nsurf; i++) {
-    while ((tagc = file->stream().peek()) == '#') // -- Skip comments.
-      file->stream().ignore (StrMax, '\n');
-    
-    file->stream() >> id >> el >> si >> tag;
-    if (tag[1] == 'B') {
-      file->stream() >> tagc;
-      if (tagc == axisBC) {
-	axelmt[j] = --el;
-	axside[j] = --si;
-	j++;
-      }
-    }
-
-    file->stream().ignore (StrMax, '\n');
-  }
-
-  if (j != naxis) message (prog, "mismatch of axis surfaces", ERROR);
-
-  // -- Now we are assured that there is at least one axial BC node.
-  //    Before throwing out the numbering scheme, we must check if
-  //    the highest-numbered node lies on the axis.
-
-  if (highAxis()) {
-    message(prog,"highest pressure node lies on axis. Renumbering...",REMARK);
-    renumber (optlev, 1); 
-  }
-}
-
-
-bool Nsys::highAxis() const
-// ---------------------------------------------------------------------------
-// Return true if the highest numbered pressure node lies on the axis,
-// otherwise false.  Internal tables axelmt and axside must have been
-// built in advance.
-// ---------------------------------------------------------------------------
-{
-  const int_t pmax  = nglobal - 1;
-  const int_t naxis = axelmt.size();
-  int_t       i, j, loff, soff, elmtID, sideID;
-
-  for (i = 0; i < nbndry; i++)
-    if (bndmap[i] == pmax) {
-      loff   = i % next_max;
-      elmtID = (i - loff) / next_max;
-      sideID = (loff - loff % np_max) / np_max;
-      soff   = loff - sideID * np_max;
-      for (j = 0; j < naxis; j++)
-	if (axelmt[j] == elmtID && axside[j] == sideID) return true;
-      if (soff == 0) {		// -- Check also end of CCW side.
-	sideID = (sideID + 3) % 4;
-	for (j = 0; j < naxis; j++)
-	  if (axelmt[j] == elmtID && axside[j] == sideID) return true;
-      }
-    }
-  
-  return false;
 }

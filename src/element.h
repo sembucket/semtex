@@ -79,7 +79,7 @@ public:
   void divY (real_t*) const;
   void mulY (real_t*) const;
   void mulX (real_t*) const;
-  void crossXPlus (const int, const real_t,const vector<real_t>&,real_t*) const;
+  void crossXPlus (const int,const real_t,const vector<real_t>&,real_t*) const;
   
   void evaluate (const char*,real_t*) const;
 
@@ -92,8 +92,8 @@ public:
   real_t area     ()                      const;
   void   weight   (real_t*)               const;
 
-  void   lengthScale (real_t*)                                           const;
-  real_t CFL         (const real_t,const real_t*,const real_t*,real_t*)  const;
+  void   lengthScale (real_t*)                              const;
+  real_t CFL         (const real_t*,const real_t*,real_t*)  const;
 
   real_t norm_inf (const real_t*) const;
   real_t norm_L2  (const real_t*) const;

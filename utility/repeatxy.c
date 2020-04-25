@@ -6,7 +6,7 @@
  *
  * This is the planar equivalent of repeatz.c
  *
- * Copyright (c) 2002 <--> $Date$, Hugh Blackburn.
+ * Copyright (c) 2002 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn.
  *
  * USAGE
  * -----
@@ -31,7 +31,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: repeatxy.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

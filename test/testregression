@@ -1,0 +1,40 @@
+#!/bin/bash
+##############################################################################
+# Run solver regression checks.
+
+# NB: you may need to edit the passed-in argument $EXEC to execute a
+# 2-process MPI job.  Its standard value is "mpirun -np 2".  For serial
+# tests, $EXEC is an empty string so that $CODE is run directly by the
+# shell.
+#
+# $Id: testregression,v 9.2 2019/06/13 03:45:20 hmb Exp $
+
+case $# in
+0) echo "usage: testregression new_code_version"; exit 0
+esac
+
+EXEC=$1
+BINDIR=$2
+CODE=$3
+TEST=$4
+MESHDIR=../mesh
+RUNDIR=Testing
+mkdir $RUNDIR
+
+if test ! -f $TEST
+then
+  mkdir $RUNDIR/$TEST
+  cp $MESHDIR/$TEST .
+fi
+if test -f $TEST.num
+then
+  rm -f $TEST.num
+fi
+$BINDIR/enumerate -O3 $TEST > $TEST.num 2> /dev/null
+$BINDIR/compare $TEST > $TEST.rst
+$EXEC $BINDIR/$CODE $TEST > /dev/null 2>&1
+$BINDIR/compare -n $TEST $TEST.fld > /dev/null 2> $TEST.new
+cmp -s $TEST.new ../regress/$TEST.ok
+rv=$?
+mv $TEST* $RUNDIR/$TEST > /dev/null
+exit $rv

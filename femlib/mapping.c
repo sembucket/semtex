@@ -2,7 +2,7 @@
  * mapping.c: build/return integer mapping vectors used to gather/scatter
  * element storage formats from one to another.
  *
- * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:06 $, Hugh Blackburn
  *
  * -- 
  * This file is part of Semtex.
@@ -22,7 +22,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  *
- * $Id$
+ * $Id: mapping.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

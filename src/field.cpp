@@ -1,7 +1,7 @@
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // field.cpp: 
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/06/13 03:45:58 $, Hugh Blackburn
 //
 // class Field
 // 
@@ -117,7 +117,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: field.cpp,v 9.2 2019/06/13 03:45:58 hmb Exp $";
 
 #include <sem.h>
 
@@ -211,6 +211,10 @@ void Field::evaluateBoundaries (const Field* P      ,
 // that must be re-evaluated at every step, such as high-order
 // pressure BCs or velocity and scalar fields that explicitly vary in
 // time.
+//
+// Note that Field* P is eventually not used by Condition::evaluate()
+// if Fourier is false, so we could alternatively use a test on
+// existence (non-NULLness) of P to detect intention.
 // ---------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();
@@ -633,6 +637,8 @@ Field& Field::solve (AuxField*             f  ,
 //
 //   The notation under JACPCG follows that used in Fig 2.5 of Barrett
 //   et al., "Templates for the Solution of Linear Systems", netlib.
+//   Iteration stops when ||r|| = ||Ax - b|| < TOL_REL^2 * ||b|
+//   (Criterion 2 in Barrett et al.).
 //   ---------------------------------------------------------------------------
 {
   const char  routine[] = "Field::solve";

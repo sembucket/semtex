@@ -2,7 +2,7 @@
 # Makefile for dns, spectral element solver for unsteady
 # Navier--Stokes problems with generalised body forcing.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:03 hmb Exp $
 ##############################################################################
 
 PROG = dns
@@ -27,7 +27,7 @@ SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 # ----------------------------------------------------------------------------
 # Default build for Navier--Stokes solver.
 #
-NS_FILES = drive integrate nonlinear dnsanalysis
+NS_FILES = drive integrate integrates nonlinear dnsanalysis
 NS_OBJ   = $(addsuffix .o,$(NS_FILES))
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ)

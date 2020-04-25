@@ -1,7 +1,7 @@
 #!/bin/csh
 ##############################################################################
 # Run Navier--Stokes solver on test files.
-# $Id$
+# $Id: testsuite,v 9.1 2019/05/30 06:36:11 hmb Exp $
 
 echo "******************************************************"
 echo "* Spectral element Navier--Stokes solver test suite. *"

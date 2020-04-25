@@ -16,7 +16,8 @@
         REFVIS = 20*KINVIS
 
         u_tau  = Re_t/Re_c
-        FFX    = u_tau * u_tau
+
+
 
         D_T        = 0.0020
         N_STEP     = 4000
@@ -46,6 +47,10 @@
 
 	C_SMAG     = 0.065
 </TOKENS>
+
+<FORCE>
+        CONST_X = u_tau * u_tau
+</FORCE>
 
 <GROUPS NUMBER=1>
 	1	w	wall

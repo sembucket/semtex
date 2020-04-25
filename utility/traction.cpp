@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // traction.cpp: Compute tractions on wall boundaries from field file.
 //
-// Copyright (c) 2006 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2006 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -29,7 +29,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: traction.cpp,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <sem.h>
 

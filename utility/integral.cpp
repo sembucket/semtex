@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integral.cpp: return the domain integral of all fields in dump file.
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -39,7 +39,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: integral.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

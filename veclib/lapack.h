@@ -9,7 +9,7 @@
 // 2.  General matrices are assumed to have column-major (FORTRAN) ordering,
 //     packed forms are described in LAPACK documentation.
 //
-// $Id$
+// $Id: lapack.h,v 9.1 2019/05/30 06:36:13 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cfemdef.h>

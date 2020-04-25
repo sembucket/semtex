@@ -1,7 +1,7 @@
 ##############################################################################
 # Makefile for spectral element foundation routines, and shared definitions.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:10 hmb Exp $
 ##############################################################################
 
 ifdef DEBUG
@@ -33,15 +33,19 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),x86_64)
     ARCH = Linux-x86_64
   endif
-  ifeq ($(HOST),raijin2)
-    ARCH = raijin
-  endif
+
   ifeq ($(MACH),ia64)
     ifeq ($(HOST),ac)
       ARCH = Linux-ia64-altix
     else
       ARCH = Linux-ia64
     endif
+  endif
+  ifeq ($(HOST),raijin2)
+    ARCH = raijin
+  endif
+  ifeq ($(HOST),semtex)
+    ARCH = semtex-x86_64
   endif
 endif
 
@@ -63,15 +67,23 @@ else
   OPT    = -m64 -O2
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
-CPPFLAGS += -I/sw/include
-CXXFLAGS = $(DEFINES) $(OPT) -ansi -Wno-unused-value  -Wno-parentheses
+# -- Use the next line with fink
+#CPPFLAGS += -I/sw/include
+CXXFLAGS = $(DEFINES) $(OPT) -ansi \
+	-Wno-unused-value -Wno-parentheses -Wno-switch
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib -L/sw/lib/gcc7/lib
+# -- Use the next line with fink
+#LIBDIR   += -L/sw/lib -L/sw/lib/gcc7/lib
+# -- Use the next line with homebrew
+#LIBDIR    += -L/usr/local/Cellar/gcc/8.3.0/lib/gcc/8
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-  LIBDIR   += -L/sw/lib/openmpi
+# -- Use the next line with fink
+#  LIBDIR   += -L/sw/lib/openmpi
+# -- Use the next line with macports
+  LIBDIR   += -L/opt/local/lib/openmpi-mp
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
@@ -97,6 +109,31 @@ LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
   LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -limf
+else
+  LDFLAGS += -lfem -lvec $(F77LIBS)
+endif
+CLDFLAGS = $(LDFLAGS)
+endif
+
+ifeq ($(ARCH),semtex-x86_64)             # -- Operton machine with Intel.
+CXX      = icc
+LD       = ifort
+CC       = icc
+FC       = ifort
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) $(OPT) -Wno-deprecated
+CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
+FFLAGS   = $(DEFINES) $(OPT)
+LIBDIR  += -L/usr/local/intel/2016u1/mkl/lib/intel64
+F77LIBS  = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lstdc++
+LDFLAGS  = $(OPT) $(LIBDIR) -nofor_main
+RANLIB   = ranlib
+ifdef MPI
+  LDFLAGS += -L/usr/lib64/openmpi/lib -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS += -lfem -lvec $(F77LIBS)
 endif
@@ -134,32 +171,32 @@ endif
 endif
 
 ifeq ($(ARCH),Linux-x86_64)             # -- Linux for AMD Opteron
-CXX      = g++44
-LD       = g++44
-CC       = gcc44
-FC       = gcc44
+#CXX      = g++44
+#LD       = g++44
+#CC       = gcc44
+#FC       = gcc44
 # -- use these with fastblas:
-#CXX      = g++
-#LD       = g++
-#CC       = gcc
-#FC       = gfortran
+CXX      = g++
+LD       = g++
+CC       = gcc
+FC       = gfortran
 ifdef DEBUG
   OPT    = -gstabs+
 else
   OPT    = -m64 -O3 -w
 endif
 CFLAGS   = $(DEFINES) $(OPT)
-FFLAGS   = $(DEFINES) $(OPT)
+  FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
-F77LIBS  = -lacml -lacml_mv -lgfortran
+#F77LIBS  = -lacml -lacml_mv -lgfortran
 # -- fastblas = GotoBLAS2. Does not work on AMD 6200 series CPUs
-#F77LIBS  = -lfastblas -lgfortran
+F77LIBS  = -lfastblas -lgfortran
 # -- this works reliably with either compiler suite but is slow on AMD/Opteron
 #F77LIBS  = -llapack -lgfortran
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
-  LDFLAGS += -L/usr/lib64/openmpi/1.4-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi
+  LDFLAGS += -L/usr/lib64/openmpi/lib -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS += -lfem -lvec $(F77LIBS)
 endif

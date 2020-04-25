@@ -2,7 +2,7 @@
  * xiclip: inverted clip to interval [alpha,beta]:
  *   if x[i] < (alpha+beta)/2 y[i] = MIN(x[i],alpha) else y[i]=MAX(x[i],beta)
  *
- * $Id$
+ * $Id: xiclip.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

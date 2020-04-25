@@ -1,0 +1,79 @@
+#!/bin/sh
+##############################################################################
+# Create regression test files for semtex solvers elliptic and dns.
+#
+# NB: Run only with known good versions of codes!
+#
+# $Id: makeregression,v 9.1 2019/05/30 06:36:11 hmb Exp $
+
+#case $# in
+#0) echo "usage: makeregress good_code_version"; exit 0
+#esac
+
+# -- The executables below can be replaced with any suitable instances.
+
+ELLIPTIC=../build/elliptic
+DNS=../build/dns
+COMPARE=../build/compare
+ENUMERATE=../build/enumerate
+MESHDIR=../mesh
+PATH=.:$PATH
+
+if  test ! -d ../regress
+then
+  mkdir ../regress
+fi
+
+# -- elliptic.
+
+CODE=$ELLIPTIC
+
+for i in laplace1 laplace3 laplace4 laplace5 laplace6 laplace7 \
+		  poisson1 poisson2 helmholtz1 mixed1
+do
+  if test ! -f $i 
+  then
+    cp $MESHDIR/$i .
+  fi
+  if test -f $i.num
+  then
+    rm -f $i.num
+  fi
+  $COMPARE $i > $i.rst
+  $ENUMERATE -O3 $i > $i.num
+  $CODE $i > /dev/null
+  if test -f ../regress/$i.ok
+  then
+    chmod 0644 ../regress/$i.ok
+  fi
+  $COMPARE -n $i $i.fld > /dev/null 2> ../regress/$i.ok
+  chmod 0444 ../regress/$i.ok
+  rm $i*
+done
+
+# -- dns.
+
+CODE=$DNS
+
+for i in taylor2 kovas1 taylor3 taylor4 taylor5 kovas2 kovas3 \
+         kovas4 kovas5 tube1 tube2 tube3 tube4 sbr tc1 cylkov2
+do
+  if test ! -f $i 
+  then
+    cp $MESHDIR/$i .
+  fi
+  if test -f $i.num
+  then
+    rm -f $i.num
+  fi
+  $COMPARE $i > $i.rst
+  $ENUMERATE -O3 $i > $i.num
+  $CODE $i > /dev/null
+  if test -f ../regress/$i.ok
+  then
+    chmod 0644 ../regress/$i.ok
+  fi
+  $COMPARE -n $i $i.fld > /dev/null 2> ../regress/$i.ok
+  chmod 0444 ../regress/$i.ok
+  rm $i*
+done

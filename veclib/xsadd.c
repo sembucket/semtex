@@ -1,7 +1,7 @@
 /*****************************************************************************
  * xsadd:   y[i] = alpha + x[i].
  *
- * $Id$
+ * $Id: xsadd.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>
@@ -24,7 +24,7 @@ void dsadd (int_t n, double alpha, const double* x, int_t incx,
 
 
 void isadd (int_t n, int_t alpha, const int_t* x, int_t incx,
-	                                    int_t* y, int_t incy)
+                                        int_t* y, int_t incy)
 {
   register int_t i;
 
@@ -36,7 +36,7 @@ void isadd (int_t n, int_t alpha, const int_t* x, int_t incx,
 
 
 void ssadd (int_t n, float alpha, const float* x, int_t incx,
-	                                  float* y, int_t incy)
+	                                float* y, int_t incy)
 {
   register int_t i;
 

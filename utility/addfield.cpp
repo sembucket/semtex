@@ -3,11 +3,9 @@
 // adding vorticity and divergence, rate of strain magnitude, velocity
 // gradient discriminant, etc.
 //
-// Copyright (c) 1998 <--> $Date$, 
-//   Hugh Blackburn, Murray Rudman
+// Copyright (c) 1998 <--> $Date: 2019/05/30 06:36:12 $, 
+//   Hugh Blackburn, Murray Rudman, Jagmohan Singh
 //
-// NB: the input field file is assumed to contain ONLY velocity and
-// pressure data.
 //
 // Usage:
 // -----
@@ -18,11 +16,10 @@
 //   -d        ... add divergence div(u)
 //   -v        ... add vorticity w=curl(u)
 //   -e        ... add enstrophy 0.5(w.w)
-//   -H        ... add helicity 0.5(u.w) (3D only)
-//   -L        ... add divergence of Lamb vector div(uxw) (3D only)
+//   -H        ... add helicity 0.5(u.w)
 //   -g        ... add strain rate magnitude sqrt(2SijSji)
 //   -D        ... add discriminant of velocity gradient tensor
-//                 NB: divergence is assumed to be zero. (3D only)
+//                 NB: divergence is assumed to be zero.
 //   -J        ... add vortex core measure of Jeong & Hussain. (3D only)
 //   -a        ... add all fields derived from velocity (above)
 //   -f <func> ... add a computed function <func> of x, y, z, t, etc.
@@ -57,10 +54,10 @@
 // r -- x component vorticity
 // s -- y component vorticity
 // t -- z component vorticity
-// H -- helicity  0.5*(u*r + v*s + w*t) = 0.5 (u . omega) 3D only.
+// H -- helicity  0.5*(u*r + v*s + w*t) = 0.5 (u . omega) .
 // J -- vortex core identification measure, see [2]. 3D only.
-// D -- discriminant of velocity gradient tensor, see [1]. 3D only.
-// L -- divergence of Lamb vector = div (omega x u), see [3] 3D only.
+// D -- discriminant of velocity gradient tensor, see [1].
+
 //
 // NB: product terms -- such as are used to calculate enstrophy,
 // helicity, the invariants and discriminant of the velocity gradient
@@ -82,12 +79,7 @@
 // [2] Jeong & Hussain (1995) On the identification of a vortex, JFM
 // 285:69--94
 //
-// [3] Hamman, Klewicki & Kirby (2008) On the Lamb vector divergence
-// in Navier--Stokes flows JFM 610:261--284
 //
-// [4] Pierce, Moin & Sayadi (2013) Application of vortex
-// identification schemes to direct numerical simulation data of a
-// transitional boundary layer PF 25:015102
 //
 // --
 // This file is part of Semtex.
@@ -108,11 +100,10 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: addfield.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 #include <tensorcalcs.h>
-
 #define FLDS_MAX 64 // -- More than we'll ever want.
 #define FLAG_MAX 10 // -- NB: FLAG_MAX should tally with the following enum:
 enum {
@@ -122,44 +113,47 @@ enum {
   ENSTROPHY   ,
   DISCRIMINANT,
   HELICITY    ,
-  DIVLAMB  ,
   STRAINRATE  ,
   VORTICITY   ,
   VORTEXCORE
 };
 
 static char  prog[] = "addfield";
+
+
 static void  getargs  (int, char**, char*&, char*&, char*&, bool[]);
-static bool  getDump  (Domain*, ifstream&);
-static void  putDump  (Domain*, vector<AuxField*>&, int_t, ostream&);
+static void  getMesh (const char*,vector<Element*>&);
+static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&,char*&);
+static bool  doSwap  (const char*);
+static char* fieldNames(ifstream&);
 
 
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
-// Driver.
+// Driver -- adapted from probe.C.
 // ---------------------------------------------------------------------------
 {
+  char                       err[StrMax]; 
   Geometry::CoordSys         system;
-  char                       *session, *dump, *func, fields[StrMax];
-  int_t                      i, j, k, p, q;
-  int_t                      np, nz, nel, allocSize, NCOM, NDIM;
-  int_t                      iAdd = 0;
-  bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
+  char                       *session, *dump, *func, *fields;
   ifstream                   file;
+  map<char, AuxField*>       input,  addfield;
+  vector<AuxField*>          addbuf, outbuf;
+  int_t                      i , j, k, p, q, nComponent, nFields;
+  int_t                      np, nz, nel, allocSize, NCOM, NDIM, outbuf_len;
+  bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
   FEML*                      F;
   Mesh*                      M;
   BCmgr*                     B;
   Domain*                    D;
   vector<Element*>           elmt;
-  AuxField                   *Ens, *Hel, *Div, *Disc, *Strain;
-  AuxField                   *Func, *Vtx, *DivL, *Nrg, *work;
-  vector<AuxField*>          velocity, vorticity, lamb, addField(FLDS_MAX);
+  AuxField                   *Func, *Vtx, *DivL, *Nrg, *work, *Disc, *Div;
+  vector<AuxField*>          velocity;
   vector<vector<AuxField*> > Vij;     // -- Usually computed, for internal use.
   vector<vector<real_t*> >   VijData; // -- For pointwise access in Vij.
-
-  vector<real_t*> VorData; // -- Ditto in vorticity.
-  vector<real_t*> LamData; // -- Ditto in Lamb vector.
+  vector<real_t*>            VorData; // -- Ditto in vorticity.
+  map<char, AuxField*>::iterator  ki, ko;
 
   real_t          *DisData, *DivData, *StrData, *VtxData, *HelData, *EnsData;
   real_t          vel[3], vort[3], tensor[9];
@@ -167,13 +161,11 @@ int main (int    argc,
   Femlib::initialize (&argc, &argv);
   for (i = 0; i < FLAG_MAX; i++) add [i] = need [i] = false;
 
-  // -- Read command line.
-
   getargs (argc, argv, session, dump, func, add);
 
-  file.open (dump);
-  if (!file) message (prog, "can't open input field file", ERROR);
-
+  file.open (dump, ios::in);
+  if (!file) message (prog, "no field file", ERROR);
+  
   // -- Set up domain.
 
   F      = new FEML (session);
@@ -182,57 +174,27 @@ int main (int    argc,
   np     =  Femlib::ivalue ("N_P");
   nz     =  Femlib::ivalue ("N_Z");
   system = (Femlib::ivalue ("CYLINDRICAL") ) ?
-                       Geometry::Cylindrical : Geometry::Cartesian;
+    Geometry::Cylindrical : Geometry::Cartesian;
   Geometry::set (np, nz, nel, system);
 
   allocSize = Geometry::nTotal();
 
   elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, M);
-
-  B = new BCmgr  (F, elmt);
-  D = new Domain (F, elmt, B);
-
-  if      (strstr (D -> field, "uvw")) NCOM = 3;
-  else if (strstr (D -> field, "uv"))  NCOM = 2;
-  else message (prog, "lacking velocity components: is session valid?", ERROR);
   NDIM = Geometry::nDim();
 
-  velocity.resize   (NCOM);
-  vorticity.resize ((NDIM == 2) ? 1 : 3);
-  for (i = 0; i < NCOM; i++) velocity[i] = D -> u[i];
-
-  // -- From the requested fields, flag dependencies.
-
-  // -- First, only allow the "coherent structures" measures for flows
-  //    that are 3D.
-
-  if  (NDIM == 2)
-    add[HELICITY]=add[DISCRIMINANT]=add[VORTEXCORE]=add[DIVLAMB] = false;
+  if (NDIM == 2) add[VORTEXCORE] = false;
 
   for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? 1 : 0;
   if  (p == 0) message (prog, "nothing to be done", ERROR);
 
   // -- Check if we just have the (first two) cases not requiring derivatives.
 
-  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (1 << i) : 0;
+  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (i + 1) : 0;
   if (p <= 3) gradient = false; else gradient = true;
 
-  for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
-
-  // -- If any gradients need to be computed, we make all of them.
-  //    Vij = du_j/dx_i.  So j labels velocity component and i labels
-  //    spatial dimension.
-
-  // -- Despite the fact that it's overkill we will take the
-  //    simple-minded approach and always make Vij as a 3x3 tensor.
-  //    That's a wasteful for anything which is 2D but presumably for
-  //    those cases the memory can be afforded.
-
-  // -- The velocity gradient tensor is initially just a naive matrix
-  //    of derivatives.  In cylindrical coordinates we need to make
-  //    modifications.
-  
+  for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];  
+ 
   if (gradient) {
     Vij    .resize (3);
     VijData.resize (3);
@@ -247,121 +209,130 @@ int main (int    argc,
     }
   }
   
+  B = new BCmgr  (F, elmt);
+  D = new Domain (F, elmt, B);
+
+  // -- From the requested fields, flag dependencies.
+  // -- First, only allow the "coherent structures" measures for flows
+  //    that are 3D.
+  // -- Need to link addbuf to addfield so we can use writeField.
+  //    Maybe in the longer term we should overload writeField.
+
+  addbuf.resize (addfield.size()); i = 0;
+  for (map<char,AuxField*>::iterator k = addfield.begin();
+       k != addfield.end(); k++, i++) addbuf[i] = k -> second;
+    
+  // -- Read fieldnames from dump and allocate input.
+ 
+  fields = fieldNames(file);
+  if      (strstr (fields, "uvw")) NCOM = 3;
+  else if (strstr (fields, "uv"))  NCOM = 2;
+  else message (prog, "lacking velocity components: is session valid?", ERROR);
+  
+  if (nFields == 1)		// -- Scalar original field.
+    nComponent = 1;
+  else				// -- Original field was vector.
+    nComponent = (nFields == 3) ? 2 : 3;
+    
+  velocity.resize (NCOM);
+  
+  for (i = 0; i < strlen(fields); i++)
+    input[fields[i]] = new AuxField
+      (new real_t[allocSize], nz, elmt, fields[i]);
+   
+  // -- Allocate space for addfield variables.
+  
   // -- Fields without dependants.
 
-  if (need[ENERGY]) {
-    Nrg = new AuxField (new real_t[allocSize], nz, elmt, 'q');
-    addField[iAdd++] = Nrg;
-  }
+  if (need[ENERGY])
+    addfield['q'] = new AuxField (new real_t[allocSize], nz, elmt, 'q');
 
-  if (need[FUNCTION]) {
-    Func = new AuxField (new real_t[allocSize], nz, elmt, 'f');
-    addField[iAdd++] = Func;
-  }
-
+  if (need[FUNCTION])
+    addfield['f'] = new AuxField (new real_t[allocSize], nz, elmt, 'f');
+  
   if (need[DIVERGENCE]) {
     DivData = new real_t [allocSize];
-    *(Div  =  new AuxField (DivData, nz, elmt, 'd')) = 0.0;
-    addField[iAdd++] = Div;
+    *(Div =  new AuxField (DivData, nz, elmt, 'd')) = 0.0;
+    addfield['d'] = Div;
   }
 
   if (need[DISCRIMINANT]) {
     DisData = new real_t [allocSize];
     *(Disc = new AuxField (DisData, nz, elmt, 'D')) = 0.0;
-    addField[iAdd++] = Disc;
+    addfield['D'] = Disc;
   }
 
   if (need[STRAINRATE]) {
-    StrData = new real_t [allocSize];
-    Strain  = new AuxField (StrData, nz, elmt, 'g');
-    addField[iAdd++] = Strain;
+    StrData       = new real_t [allocSize];
+    addfield['g'] = new AuxField (StrData, nz, elmt, 'g');
   }
 
   if (need[VORTEXCORE]) {
-    VtxData = new real_t [allocSize];
-    Vtx = new AuxField (VtxData, nz, elmt, 'J');
-    addField[iAdd++] = Vtx;
+    VtxData       = new real_t [allocSize];
+    addfield['J'] = new AuxField (VtxData, nz, elmt, 'J');
   }
 
   if (need[VORTICITY])
-    if (NDIM == 2) {
-      vorticity.resize (1);
-      VorData  .resize (1);
-      VorData[0]       = new real_t [allocSize];
-      vorticity[0]     = new AuxField (VorData[0], nz, elmt, 't');
-      addField[iAdd++] = vorticity[0];
+    if (NCOM == 2) {
+      VorData.resize (1);
+      VorData[0]    = new real_t [allocSize];
+      addfield['t'] = new AuxField (VorData[0], nz, elmt, 't');
     } else {
-      vorticity.resize (3);
       VorData  .resize (3);
       for (i = 0; i < 3; i++) {
-	VorData[i]       = new real_t [allocSize];
-	vorticity[i]     = new AuxField (VorData[i], nz, elmt, 'r' + i);
-	addField[iAdd++] = vorticity[i];
+	VorData[i]      = new real_t [allocSize];
+	addfield['r'+i] = new AuxField (VorData[i], nz, elmt, 'r'+i);
       }
     }
 
-  if (add[DIVLAMB]) { 		// -- Know also NDIM == 3.
-    lamb   .resize (3);
-    LamData.resize (3);
-    for (i = 0; i < 3; i++) {
-      LamData[i] = new real_t [allocSize];
-      lamb[i]    = new AuxField (LamData[i], nz, elmt, 'L');
-    }
-    addField[iAdd++] = lamb[0];	// -- Where divergence will get stored.
-  }
-
   if (need[ENSTROPHY]) {
-    EnsData = new real_t[allocSize];
-    Ens = new AuxField (EnsData, nz, elmt, 'e');
-    if (add[ENSTROPHY]) addField[iAdd++] = Ens;
+    EnsData       = new real_t[allocSize];
+    addfield['e'] = new AuxField (EnsData, nz, elmt, 'e');
   }
   
   if (need[HELICITY]) {
-    HelData = new real_t [allocSize];
-    Hel = new AuxField (HelData, nz, elmt, 'H');
-    if (add[HELICITY]) addField[iAdd++] = Hel;
-  }
+    HelData       = new real_t [allocSize];
+    addfield['H'] = new AuxField (HelData, nz, elmt, 'H');
+  }  
 
-  // -- Cycle through field dump, first (if required) making the only
-  //    two things which just need the velocity and no gradients, then
-  //    if needed computing the full VG tensor and work forward from
-  //    there.  The order of computation is determined by
-  //    dependencies.  Then write requested output, listed in
-  //    addField.
-
-
-  while (getDump (D, file)) {
-        
-    if (need[FUNCTION]) *Func = func;
-
-    if (need[ENERGY]) ((*Nrg) . innerProduct (velocity, velocity)) *= 0.5;
-
+  // -- Read from input and calculate addfield.
+  
+  while (getDump (file, input, elmt, fields)) {
+    
+    for (i = 0; i < NCOM; i++) velocity[i] = input['u'+i];
+    if (need[FUNCTION]) (*addfield['f']) = func;
+    if (need[ENERGY]) ((*addfield['q']) .
+		       innerProduct (velocity, velocity)) *= 0.5;
+   
     if (gradient) {		// -- All other things.
 
       // -- First make all VG components.
-
-      for (i = 0; i < NDIM ; i++)
+   
+      for (i = 0; i < NDIM ; i++){
 	for (j = 0; j < NCOM ; j++) {
-	  *Vij[i][j] = *velocity[j];
-	  if (i == 2) Vij[i][j] -> transform (FORWARD);
-	  Vij[i][j] -> gradient (i);
-	  if (i == 2) Vij[i][j] -> transform (INVERSE);
-	}
+	  (*Vij[i][j] = *velocity[j]).gradient(i);
+	  if (i == 2) (*Vij[i][j] = *velocity[j]) .
+			transform(FORWARD).gradient(i).transform(INVERSE); 
+	}	
+      }
 
       if (Geometry::cylindrical()) {
 	work = new AuxField (new real_t[allocSize],  nz, elmt);
 	if (NDIM == 3) for (j = 0; j < NCOM; j++) Vij[2][j] -> divY();
 	(*work = *velocity[1]) . divY(); *Vij[2][2] += *work;
-	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] += *work; }
-      }
-
 #if 1
+	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] += *work; }
+#else
+	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] -= *work; }
+#endif
+      }
+  
       // -- Loop over every point in the mesh and compute everything
       //    from Vij.  Quite likely this could be made more efficient
       //    but for now simplicity is the aim.
 
       for (i = 0; i < allocSize; i++) {
-
+	
 	for (k = 0, p = 0; p < 3; p++) {
 	  for (q = 0; q < 3; q++, k++)
 	    tensor [k] = VijData [p][q][i];
@@ -374,12 +345,12 @@ int main (int    argc,
 	if (need[DISCRIMINANT]) DisData[i] = tensor3::discrimi   (tensor);
 	if (need[STRAINRATE])   StrData[i] = tensor3::strainrate (tensor);
 	if (need[VORTEXCORE])   VtxData[i] = tensor3::lambda2    (tensor);
-
+	
 	// -- Vorticity could be considered scalar in 2D.
 
 	if (need[VORTICITY]) {
 	  tensor3::vorticity (tensor, vort);
-	  if (NDIM == 2) 
+	  if (NCOM == 2) 
 	    VorData[0][i] = vort[2];
 	  else { 
 	    VorData[0][i] = vort[0]; 
@@ -388,170 +359,60 @@ int main (int    argc,
 	  }
 	}
 
-	if (!(need[HELICITY] || need[DIVLAMB])) continue;
+	// -- Helicity requies velocity too.
 
-	// -- Last two measures need velocity too, only made for NDIM = 3.
+	if (need[HELICITY]) {
+	  vel[0] = velocity[0] -> data()[i];
+	  vel[1] = velocity[1] -> data()[i];
+	  if (NCOM ==3) {vel[2] = velocity[2] -> data()[i];}
+	  else {vel[2] =0.0;}
 
-	vel[0] = velocity[0] -> data()[i];
-	vel[1] = velocity[1] -> data()[i];
-	vel[2] = velocity[2] -> data()[i];
-
-	if (need[HELICITY]) HelData[i] = tensor3::helicity (tensor, vel);
-
-
-	if (need[DIVLAMB]) {
-	  tensor3::lambvector (tensor, vel, vort); // -- vort is a dummy.
-	  LamData[0][i] = vort[0]; 
-	  LamData[1][i] = vort[1]; 
-	  LamData[2][i] = vort[2];
+	  HelData[i] = tensor3::helicity (tensor, vel);
 	}
-      }
-
-      // -- For this case, we still need to compute a divergence:
-      
-      if (need[DIVLAMB]) {
-	lamb[0] -> gradient (0);
-	(*lamb[2]) . transform (FORWARD) . gradient (2) . transform(INVERSE);
-	if (Geometry::cylindrical()) lamb[2] -> divY();
-	*lamb[0] += *lamb[2];
-	if (Geometry::cylindrical()) *lamb[0] += (*lamb[2] = *lamb[1]) . divY();
-	*lamb[0] += (*lamb[1]) . gradient (1);
       }
     }
-#else
+  
+    for (map<char,AuxField*>::iterator k = addfield.begin();
+         k != addfield.end(); k++, i++)
+      D -> u[0] -> smooth(addfield[k-> first]);
+  
+    outbuf_len = input.size()+addfield.size();
 
-      if (need[DISCRIMINANT]) {
+    // -- Find if input already contains some of the variables that are
+    //    being calculated accordingly figure out the required size of
+    //    outbuf.
 
-	// -- 2nd invariant (Q from Chong et al.).
-	
-	InvQ -> times      (*Vij[0][0], *Vij[1][1]);
-	InvQ -> timesMinus (*Vij[0][1], *Vij[1][0]);
-	InvQ -> timesPlus  (*Vij[0][0], *Vij[2][2]);
-
-	InvQ -> timesMinus (*Vij[0][2], *Vij[2][0]);
-	InvQ -> timesPlus  (*Vij[1][1], *Vij[2][2]);
-	InvQ -> timesMinus (*Vij[1][2], *Vij[2][1]);
-
-	// -- 3rd invariant: determinant of Vij (R from Chong et al.).
-
-	work -> times      (*Vij[1][1], *Vij[2][2]);
-	work -> timesMinus (*Vij[2][1], *Vij[1][2]);
-	InvR -> times      (*work,      *Vij[0][0]);
-
-	work -> times      (*Vij[1][2], *Vij[2][0]);
-	work -> timesMinus (*Vij[2][2], *Vij[1][0]);
-	InvR -> timesPlus  (*work,      *Vij[0][1]);
-
-	work -> times      (*Vij[2][1], *Vij[1][0]);
-	work -> timesMinus (*Vij[1][1], *Vij[2][0]);
-	InvR -> timesPlus  (*work,      *Vij[0][2]);
-
-	// -- Discriminant L of Vij.
-	//    NB: DIVERGENCE (P from Chong et al.) ASSUMED = 0.
-
-	work -> times (*InvQ, *InvQ);
-	Disc -> times (*work, *InvQ);
-	work -> times (*InvR, *InvR);
-	*work *= 6.75;
-	*Disc += *work;
-#if 1
-	// -- Take the 1/3 power of discriminant, thus making it
-	//    dimensionally consistent with the lambda2 criterion (see
-	//    ref [4]), after first clipping to positive values.
-	Disc -> clipUp ();
-	Disc -> pow (1./3.);
-#endif
-      }
-
-      if (need[DIVERGENCE])
-	for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
-
-    
-      if (need[VORTICITY]) {
-	if (nComponent == 2) {
-	  *vorticity[0]  = *Vij[1][0];
-	  *vorticity[0] -= *Vij[0][1];
-	} else {
-	  *vorticity[0]  = *Vij[2][1];
-	  *vorticity[0] -= *Vij[1][2];
-	  *vorticity[1]  = *Vij[0][2];
-	  *vorticity[1] -= *Vij[2][0];
-	  *vorticity[2]  = *Vij[1][0];
-	  *vorticity[2] -= *Vij[0][1];
-	}
-      }
-
-      if (need[DIVLAMB]) {
-	if (nComponent == 2) {
-	  *lamb[0] = 0.0;
-	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[0]);
-	  lamb[1] -> times      (*D -> u[0], *vorticity[0]);
-	  *DivL  = (*work = *lamb[0]) . gradient (0);
-	  *DivL += (*work = *lamb[1]) . gradient (1);
-	  if (Geometry::cylindrical())
-	    *DivL += (*work = *lamb[1]) . divY();
-	} else {
-	  lamb[0] -> times      (*D -> u[2], *vorticity[1]);
-	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[2]);
-	  lamb[1] -> times      (*D -> u[0], *vorticity[2]);
-	  lamb[1] -> timesMinus (*D -> u[2], *vorticity[0]);
-	  lamb[2] -> times      (*D -> u[1], *vorticity[0]);
-	  lamb[2] -> timesMinus (*D -> u[0], *vorticity[1]);
-	  *DivL  = (*work = *lamb[0]) . gradient (0);
-	  *DivL += (*work = *lamb[1]) . gradient (1);
-	  (*work = *lamb[2]).transform(FORWARD).gradient(2).transform(INVERSE);
-	  if (Geometry::cylindrical()) {
-	    *DivL += work -> divY();
-	    *DivL += (*work = *lamb[1]) . divY();
-	  } else
-	    *DivL += *work;
-	}
-      }
-    
-      if (need[ENSTROPHY])
-	Ens -> innerProduct (vorticity, vorticity) *= 0.5;
-
-      if (need[HELICITY])
-	Hel -> innerProduct (vorticity, velocity)  *= 0.5;
-
-      if (need[STRAINTENSOR]) {
-	for (i = 0; i < nComponent; i++)
-	  for (j = i; j < nComponent; j++) {
-	    *Sij[i][j]  = *Vij[i][j];
-	    *Sij[i][j] += *Vij[j][i];
-	    *Sij[i][j] *= 0.5;
-	  }
-      }
-
-      if (need[STRAINRATE]) {
-	*Strain = 0.0;
-	for (i = 0; i < nComponent; i++)
-	  for (j = 0; j < nComponent; j++)
-	    Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
-	(*Strain *= 2.0) . sqroot();
-      }
-
-      if (need[VORTEXCORE])	// -- Only done for 3-component fields.
-	for (i = 0; i < allocSize; i++) {
-	  for (k = 0, p = 0; p < 3; p++)
-	    for (q = 0; q < 3; q++, k++)
-	      tensor [k] = VijData[p][q][i];
-	  VtxData[i] = lambda2 (tensor);
-	}
+    for (map<char,AuxField*>::iterator k = addfield.begin();
+	 k != addfield.end(); k++) {
+      ki = input.find (k -> first);
+      if (ki != input.end()) outbuf_len--;
     }
-#endif
-    // -- Finally, add mass-projection smoothing on everything.
+    outbuf.resize (outbuf_len); i = 0;         
+          
+    // -- Set outbuf to input, skip the entries already available in
+    //    addfield.
+  
+    for (k = 0; k < strlen(fields); k++) {
+      ki = input.find(fields[k]);
+      ko = addfield.find(fields[k]);
+      if (ko != addfield.end()) {
+	sprintf (err,"found field %c in input, overwriting", fields[k]);
+	message (prog, err, WARNING);  
+      } else
+	outbuf[i++] = ki -> second;
+    }
+  
+    // -- Append addfield data into outbuf.
+  
+    for (map<char,AuxField*>::iterator k = addfield.begin();
+	 k != addfield.end(); k++, i++) outbuf[i] = k -> second;
 
-    for (i = 0; i < iAdd; i++) D -> u[0] -> smooth (addField[i]);
-
-    putDump (D, addField, iAdd, cout);
+    writeField (cout, session, 0, 0.0, outbuf);
   }
   
-  file.close();
   Femlib::finalize();
   return EXIT_SUCCESS;
 }
-
 
 static void getargs (int    argc   ,
 		     char** argv   ,
@@ -571,11 +432,10 @@ static void getargs (int    argc   ,
     "  -d        ... add divergence div(u)\n"
     "  -v        ... add vorticity w=curl(u)\n"
     "  -e        ... add enstrophy 0.5(w.w)\n"
-    "  -H        ... add helicity 0.5(u.w) (3D only)\n"
-    "  -L        ... add divergence of Lamb vector, div(uxw)\n"
+    "  -H        ... add helicity 0.5(u.w) \n"
     "  -g        ... add strain rate magnitude sqrt(2SijSji)\n"
     "  -D        ... add discriminant of velocity gradient tensor\n"
-    "                NB: divergence is assumed to be zero. (3D only)\n"
+    "                NB: divergence is assumed to be zero. \n"
     "  -J        ... add vortex core measure of Jeong & Hussain (3D only)\n"
     "  -a        ... add all fields derived from velocity (above)\n"
     "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
@@ -600,12 +460,14 @@ static void getargs (int    argc   ,
     case 'g': flag[STRAINRATE]   = true; break;
     case 'D': flag[DISCRIMINANT] = true; break;
     case 'J': flag[VORTEXCORE]   = true; break;
-    case 'L': flag[DIVLAMB]      = true; break;
     case 'q': flag[ENERGY]       = true; break;
-    case 'a': flag[0]=true; for (i = 2; i < FLAG_MAX ; i++) flag[i]=true; break;
+    case 'a': flag[0]=true;
+      for (i = 2; i < FLAG_MAX ; i++) flag[i]=true;
+      break;
     case 'f':
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
-      flag[FUNCTION] = true; break;
+      flag[FUNCTION] = true;
+      break;
     default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 
@@ -618,90 +480,124 @@ static void getargs (int    argc   ,
 }
 
 
-static bool getDump (Domain*   D   ,
-		     ifstream& dump)
+static void getMesh (const char*       session,
+		     vector<Element*>& elmt   )
 // ---------------------------------------------------------------------------
-// Read next set of field dumps from file.
+// Set up 2D mesh information. Note that parser tokens and Geometry
+// are set here, too.
 // ---------------------------------------------------------------------------
 {
-  dump >> *D;
-  return dump.good ();
+  FEML* F = new FEML (session);
+  Mesh* M = new Mesh (F);
+  
+  const int_t nel = M -> nEl();  
+  const int_t np  = Femlib::ivalue ("N_P");
+  const int_t nz  = Femlib::ivalue ("N_Z");
+
+  Geometry::CoordSys space = (Femlib::ivalue ("CYLINDRICAL")) ?
+    Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, space);
+  elmt.resize   (nel);
+
+  for (int_t k = 0; k < nel; k++) elmt[k] = new Element (k, np, M);
 }
 
 
-static void putDump  (Domain*            D       ,
-		      vector<AuxField*>& addField,
-		      int_t              nOut    ,
-		      ostream&           strm    )
+static char* fieldNames (ifstream& file)
 // ---------------------------------------------------------------------------
-// This is a version of the normal Domain dump that adds extra AuxFields.
+// Return string containing single-character names of fields.
 // ---------------------------------------------------------------------------
 {
-  const char *hdr_fmt[] = { 
-    "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
-    "%-25s "    "Nr, Ns, Nz, Elements\n",
-    "%-25d "    "Step\n",
-    "%-25.6g "  "Time\n",
-    "%-25.6g "  "Time step\n",
-    "%-25.6g "  "Kinvis\n",
-    "%-25.6g "  "Beta\n",
-    "%-25s "    "Fields written\n",
-    "%-25s "    "Format\n"
-  };
-
-  int_t  i, nComponent;
-  char   routine[] = "putDump";
-  char   s1[StrMax], s2[StrMax];
-  time_t tp (::time (0));
-
-  if (D -> nField() == 1)	// -- Scalar original field.
-    nComponent = 1;
-  else				// -- Original field was vector.
-    nComponent = (D -> nField() == 3) ? 2 : 3;
-
-  sprintf (s1, hdr_fmt[0], D -> name);
-  strm << s1;
-
-  strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-  sprintf  (s1, hdr_fmt[1], s2);
-  strm << s1;
-
-  D -> u[0] -> describe (s2);
-  sprintf (s1, hdr_fmt[2], s2);
-  strm << s1;
-
-  sprintf (s1, hdr_fmt[3], D -> step);
-  strm << s1;
-
-  sprintf (s1, hdr_fmt[4], D -> time);
-  strm << s1;
-
-  sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-  strm << s1;
-
-  sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-  strm << s1;
-
-  sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-  strm << s1;
-
-  for (i = 0; i <= nComponent; i++) s2[i] = D -> u[i] -> name();
-  for (i = 0; i <  nOut; i++)
-    s2[nComponent + i + 1] = addField[i] -> name();
-  s2[nComponent + nOut + 1] = '\0';
-
-  sprintf (s1, hdr_fmt[8], s2);
-  strm << s1;
-
-  sprintf (s2, "binary ");
-  Veclib::describeFormat (s2 + strlen (s2));
-  sprintf (s1, hdr_fmt[9], s2);
-  strm << s1;
-
-  for (i = 0; i <= nComponent; i++) strm << *D -> u[i];
-  for (i = 0; i < nOut; i++) strm << *addField[i];
-
-  if (!strm) message (routine, "failed writing field file", ERROR);
-  strm << flush;
+  static char fields[StrMax];
+  char        buf[StrMax];
+  int_t       i;
+  
+  for (i = 0; i < 8; i++) file.getline (buf, StrMax);
+  file >> fields;
+  file.clear();
+  file.seekg(0);
+  return fields;
 }
+
+static bool getDump (ifstream&             file  ,
+		     map<char, AuxField*>& u     ,
+		     vector<Element*>&     elmt  ,
+		     char*&                fieldn)
+// ---------------------------------------------------------------------------
+// Load data from field dump, with byte-swapping if required.
+// If there is more than one dump in file, it is required that the
+// structure of each dump is the same as the first.
+// ---------------------------------------------------------------------------
+{
+  const int_t ntot = Geometry::nTotal();
+  char        buf[StrMax], fields[StrMax];
+  int_t       i, nf, np, nz, nel;
+  bool        swab;
+  char         err[StrMax];
+  map<char, AuxField*>::iterator  k;
+  
+  if (file.getline(buf, StrMax).eof()) return false;
+  
+  if (!strstr (buf, "Session")) message (prog, "not a field file", ERROR);
+  file.getline (buf, StrMax);
+
+  // -- Input numerical description of field sizes.
+
+  file >> np >> nz >> nz >> nel;
+  file.getline (buf, StrMax);
+  
+  if (np != Geometry::nP() || nz != Geometry::nZ() || nel != Geometry::nElmt())
+    message (prog, "size of dump mismatch with session file", ERROR);
+
+  file.getline (buf, StrMax);
+  file.getline (buf, StrMax);
+  file.getline (buf, StrMax);
+  file.getline (buf, StrMax);
+  file.getline (buf, StrMax);
+
+  // -- Input field names, assumed to be written without intervening spaces.
+
+  file >> fields;
+  nf = strlen  (fields);
+  file.getline (buf, StrMax);
+
+  // -- Arrange for byte-swapping if required.
+
+  file.getline  (buf, StrMax);
+  swab = doSwap (buf);
+  
+  if (u.size() != 0) {
+    if (strcmp (fieldn, fields) != 0)
+      message (prog, "fields mismatch with first dump in file", ERROR);
+  }
+  
+  for (i = 0; i < nf; i++) {
+    k = u.find(fields[i]);
+    file >> *(k -> second);
+    if (swab) k -> second -> reverse();
+  }
+
+  return file.good();
+}
+
+
+static bool doSwap (const char* ffmt)
+// ---------------------------------------------------------------------------
+// Figure out if byte-swapping is required to make sense of binary input.
+// ---------------------------------------------------------------------------
+{
+  char mfmt[StrMax];
+
+  Veclib::describeFormat (mfmt);   
+
+  if (!strstr (ffmt, "binary"))
+    message (prog, "input field file not in binary format", ERROR);
+  else if (!strstr (ffmt, "endian"))
+    message (prog, "input field file in unknown binary format", WARNING);
+
+  return (strstr (ffmt, "big") && strstr (mfmt, "little")) || 
+    (strstr (mfmt, "big") && strstr (ffmt, "little"));
+}
+
+

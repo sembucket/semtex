@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // element.C: 2D quad spectral element class routines.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -22,7 +22,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: element.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 
@@ -1235,8 +1235,7 @@ real_t Element::probe (const real_t  r   ,
 }
 
 
-real_t Element::CFL (const real_t  d   ,
-		     const real_t* u   ,
+real_t Element::CFL (const real_t* u   ,
 		     const real_t* v   ,
 		     real_t*       work) const
 // ---------------------------------------------------------------------------
@@ -1267,13 +1266,11 @@ real_t Element::CFL (const real_t  d   ,
   Veclib::zero (loopcnt, work, 1);
 
   if        (u) {
-    if (_drdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdx[i]);
-    if (_dsdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdx[i]);
-    Veclib::vdiv (loopcnt, u, 1, work, 1, work, 1);
+    if (_drdx) for (i = 0; i < loopcnt; i++) work[i] += u[i] * fabs (_drdx[i]);
+    if (_dsdx) for (i = 0; i < loopcnt; i++) work[i] += u[i] * fabs (_dsdx[i]);
   } else if (v) {
-    if (_drdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdy[i]);
-    if (_dsdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdy[i]);
-    Veclib::vdiv (loopcnt, v, 1, work, 1, work, 1);
+    if (_drdy) for (i = 0; i < loopcnt; i++) work[i] += v[i] * fabs (_drdy[i]);
+    if (_dsdy) for (i = 0; i < loopcnt; i++) work[i] += v[i] * fabs (_dsdy[i]);
   }
 
   i = Blas::iamax (loopcnt, work, 1);
@@ -1386,7 +1383,7 @@ void Element::mapping ()
   
   Veclib::vmul  (_npnp, jac,  1, WW,   1, _Q4, 1);
 
-  // -- Construct partials for derivative operations.
+  // -- Construct forward partials for derivative operations.
 
   Veclib::copy  (_npnp, dyds, 1, _drdx, 1);
   Veclib::vneg  (_npnp, dxds, 1, _drdy, 1);

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.cpp
 //
-// Copyright (c) 1996 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -51,7 +51,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: compare.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <ctime>
 #include <sem.h>
@@ -226,7 +226,7 @@ int main (int    argc,
       t = exact -> norm_inf();
 
       cerr.setf (ios::scientific, ios::floatfield);
-      cerr << setprecision (4);
+      cerr << setprecision (3);	 // -- Low: error-tolerant, high enough too.
       cerr << "Field '" << fields[i] << "': norm_inf: ";
       if   (t < NOISE && noise ) cerr << "noise-level" << endl;
       else                       cerr << t             << endl;

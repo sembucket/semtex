@@ -4,9 +4,8 @@
 // (3.2.1) which is the default action, or the mean flow energy
 // equation, T&L (3.1.11). Output values have dimensions of kinetic
 // energy per unit mass per unit time, i.e. power per unit mass.
-
 //
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2004 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // NB: the input field file is assumed to contain only velocity and
 // appropriate correlation data. The naming conventions employed for
@@ -134,7 +133,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: eneq.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 
@@ -156,7 +155,7 @@ static const char* fieldNames(map<char, AuxField*>&);
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
-// Driver -- adapted from probe.C.
+// Driver -- adapted from probe.cpp.
 // ---------------------------------------------------------------------------
 {
   const char           *session, *dump;

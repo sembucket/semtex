@@ -12,7 +12,7 @@
  * NB: if another pointer is pre-aliased to input pointer, remember to reset
  * it to the pointer returned after adoption routines are called.
  *
- * $Id$
+ * $Id: family.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

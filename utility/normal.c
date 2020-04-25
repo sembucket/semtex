@@ -3,7 +3,7 @@
  * gasdev) to produce Gaussian-distributed pseudo-random numbers with
  * nominated mean and standard deviation (defaults: 0 & 1).
  *
- * Copyright (c) 2008 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 2008 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -32,7 +32,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: normal.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

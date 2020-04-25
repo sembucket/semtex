@@ -1,12 +1,12 @@
-# $Id$
+# $Id: meshnum.sm,v 9.1 2019/05/30 06:36:10 hmb Exp $
 
 meshnum 	# Number a spectral element mesh
 		#
 		# You must call gridplot first!
 		#
-		# $Author$
-		# $Date$
-		# $Revision$
+		# $Author: hmb $
+		# $Date: 2019/05/30 06:36:10 $
+		# $Revision: 9.1 $
 		# -------------------------------------------------------------
 		# EXTERNALS: _mesh_nr _mesh_ns _mesh_nel _mesh_x _mesh_y
 		# -------------------------------------------------------------

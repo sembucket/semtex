@@ -6,7 +6,7 @@
 // that are not positive-definite (for example a reflection would
 // violate this requirement).
 //
-// Copyright (c) 2010 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2010 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // Usage:
 // -----
@@ -52,7 +52,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: mapmesh.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

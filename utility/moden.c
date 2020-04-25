@@ -3,7 +3,7 @@
  * energy in named mode, output 2D data file.  Field must be binary
  * format.  By default, output energy in mode 0.
  *
- * Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -32,7 +32,7 @@
  * 02110-1301 USA.
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: moden.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

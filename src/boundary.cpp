@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // boundary.C: implement Boundary class functions.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -29,7 +29,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: boundary.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
 
 #include <sem.h>
 

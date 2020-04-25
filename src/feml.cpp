@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml.C:  Finite Element Markup Language (FEML) routines.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -44,7 +44,7 @@
 // TO DO: move to XML.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: feml.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <cstdlib>		// -- C standard headers.
 #include <cstdio>
@@ -90,7 +90,6 @@ FEML::FEML (const char* session) :
     "CURVES",
     "USER",
     "HISTORY",
-    "CUT",
     "FORCE",
     0
   };
@@ -108,7 +107,7 @@ FEML::FEML (const char* session) :
 
   for (i = 0; reserved[i] && i < FEML_KEYWORD_MAX; i++) {
     _keyWord[i] = strcpy ((new char [strlen (reserved[i]) + 1]), reserved[i]);
-    _keyPosn[i] = NULL;
+    _keyPosn[i] = 0;
   }
   _keyWord[i] = NULL;
 
@@ -205,7 +204,7 @@ FEML::FEML (const char* session) :
 }
 
 
-void FEML::check_ASCII()
+void FEML::check_ASCII ()
 // ---------------------------------------------------------------------------
 // Check for non-ASCII characters in session file.
 // ---------------------------------------------------------------------------
@@ -220,7 +219,7 @@ void FEML::check_ASCII()
     for (col = 0; col < strlen(the_line); col++)
       if (!isascii(the_line[col])) {
         sprintf (err, "Non-ASCII character on line %i, col %i", line, col+1);
-        message(routine, err, ERROR);
+        message (routine, err, ERROR);
       }
   }
   _feml_file.clear ();          // -- Reset EOF error condition.
@@ -347,6 +346,7 @@ int_t FEML::sections (vector <const char*>& present)
   return _nKey;
 }
 
+
 bool FEML::echo (ostream&    stream,
 		 const char* key   )
 // ---------------------------------------------------------------------------
@@ -431,8 +431,8 @@ bool FEML::valueFromSection (real_t     *value  ,
 			     const char *section,
                              const char *token  )
 // ---------------------------------------------------------------------------
-// Search for 'token' in 'section' of input file. If found, copy to
-// 'value', otherwise, 'value' is unchanged.
+// Search for 'token' in 'section' of input file. If found, parse and
+// install in 'value', otherwise, 'value' is unchanged. 
 //
 // Returns TRUE on sucess, FALSE if section or token not found.
 // ---------------------------------------------------------------------------
@@ -440,33 +440,29 @@ bool FEML::valueFromSection (real_t     *value  ,
   char routine[] = "FEML::valueFromSection";
   char endsection[StrMax], s[StrMax];
 
-  sprintf(endsection, "</%s>", section);
+  sprintf (endsection, "</%s>", section);
 
   if (seek (section)) {
     stream().ignore (StrMax, '\n');
-
-    while (!stream().eof())
-    {
+    while (!stream().eof()) {
       stream().getline(s, StrMax);
       if (s[0] == '#') {
         stream().ignore (StrMax, '\n');
         continue;
       }
-      if (strcmp (s, endsection) == 0) break;
+      if (strstr (s, endsection)) break;
       char *tok;
-      if ((tok = strtok (s, "\t= ")) == NULL) continue;
-
-      if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "=\n");
-        *value = Femlib::value(tok);
+      if ((tok = strtok (s, "=")) == NULL) continue;
+      if (strstr (tok, token)) {
+        tok = strtok (NULL, "\0");
+        *value = Femlib::value (tok);
         return true;
       }
     }
-    return false; // token not found
-  }  else {
-    char msg[StrMax];
-    sprintf(msg, "%s section not found", section);
-    message (routine, msg,  ERROR);
+    return false;
+  } else {
+    sprintf (s, "%s section not found", section);
+    message (routine, s, ERROR);
   }
 
   return false;
@@ -477,40 +473,35 @@ bool FEML::valueFromSection (int_t      *value  ,
 			     const char *section,
 			     const char *token  )
 // ---------------------------------------------------------------------------
-// as above, integer version
+// As above, integer version
 // ---------------------------------------------------------------------------
 {
-  char routine[]   = "FEML::valueFromSection";
+  char routine[] = "FEML::valueFromSection";
   char endsection[StrMax], s[StrMax];
 
-  sprintf(endsection, "</%s>", section);
+  sprintf (endsection, "</%s>", section);
 
   if (seek (section)) {
     stream().ignore (StrMax, '\n');
-
-    while (!stream().eof())
-    {
+    while (!stream().eof()) {
       stream().getline(s, StrMax);
-      if (s[0] == '#')
-      {
+      if (s[0] == '#') {
         stream().ignore (StrMax, '\n');
         continue;
       }
-      if (strcmp (s, endsection) == 0) break;
+      if (strstr (s, endsection)) break;
       char *tok;
-      if ((tok = strtok (s, "\t= ")) == NULL) continue;
-
-      if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "=\n");
-        *value = Femlib::ivalue(tok);
+      if ((tok = strtok (s, "=")) == NULL) continue;
+      if (strstr (tok, token)) {
+        tok = strtok (NULL, "\0");
+        *value = Femlib::ivalue (tok);
         return true;
       }
     }
-    return false; // token not found
-  }  else {
-    char msg[StrMax];
-    sprintf(msg, "%s section not found", section);
-    message (routine, msg,  ERROR);
+    return false;
+  } else {
+    sprintf (s, "%s section not found", section);
+    message (routine, s, ERROR);
   }
 
   return false;
@@ -521,40 +512,35 @@ bool FEML::valueFromSection (char       *buf    ,
 			     const char *section,
 			     const char *token  )
 // ---------------------------------------------------------------------------
-// as above, string version
+// As above, string version.
 // ---------------------------------------------------------------------------
 {
   char routine[]   = "FEML::valueFromSection";
   char endsection[StrMax], s[StrMax];
 
-  sprintf(endsection, "</%s>", section);
+  sprintf (endsection, "</%s>", section);
 
   if (seek (section)) {
     stream().ignore (StrMax, '\n');
-
-    while (!stream().eof())
-    {
-      stream().getline(s, StrMax);
-      if (s[0] == '#')
-      {
+    while (!stream().eof()) {
+      stream().getline (s, StrMax);
+      if (s[0] == '#') {
         stream().ignore (StrMax, '\n');
         continue;
       }
-      if (strcmp (s, endsection) == 0) break;
+      if (strstr (s, endsection)) break;
       char *tok;
-      if ((tok = strtok (s, "\t= ")) == NULL) continue;
-
-      if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "=\n");
-        strcpy(buf, tok);
+      if ((tok = strtok (s, "=")) == NULL) continue;
+      if (strstr (tok, token)) {
+        tok = strtok (NULL, "\0");
+        strcpy (buf, tok);
         return true;
       }
     }
-    return false; // token not found
-  }  else {
-    char msg[StrMax];
-    sprintf(msg, "%s section not found", section);
-    message (routine, msg,  ERROR);
+    return false;
+  } else {
+    sprintf (s, "%s section not found", section);
+    message (routine, s, ERROR);
   }
 
   return false;

@@ -7,7 +7,7 @@
  * requested plane number is the first of the two desired plane
  * indices.  Plane indexing used for command line is 1-based.
  *
- * Copyright (c) 2000 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 2000 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -34,7 +34,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: xplane.c,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

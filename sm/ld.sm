@@ -1,4 +1,4 @@
-# $Id$
+# $Id: ld.sm,v 9.1 2019/05/30 06:36:10 hmb Exp $
 
 clcd	12	# Plot Cd & Cl timeseries from .sta file
 

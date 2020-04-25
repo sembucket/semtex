@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // helmholtz.C:  routines to solve elliptic problems in one variable.
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994<-->$Date: 2019/05/30 06:36:05 $, Hugh Blackburn
 //
 // This file is part of Semtex.
 // 
@@ -21,7 +21,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: helmholtz.cpp,v 9.1 2019/05/30 06:36:05 hmb Exp $";
 
 #include <sem.h>
 

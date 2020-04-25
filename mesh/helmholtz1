@@ -8,9 +8,9 @@
 </FIELDS>
 
 <USER>
-	Geometry 2D-Cartesian
 	Forcing  sin(PI*x)*sin(PI*y)
 	Exact    -sin(PI*x)*sin(PI*y)/(2.0*PI*PI+LAMBDA2)
+	c =      -sin(PI*x)*sin(PI*y)/(2.0*PI*PI+LAMBDA2)	
 </USER>
 
 <TOKENS>

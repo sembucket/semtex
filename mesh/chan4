@@ -16,9 +16,6 @@
 </USER>
 
 <TOKENS>
-	FFX       = 2.23e-3
-
-	RNG       = 0
 	C_SMAG    = 0.065
 	KINVIS    = 72.5e-6
 	REFVIS    = 10*KINVIS
@@ -38,6 +35,10 @@
 	CHKPOINT  = 1
 	ITERATIVE = 1
 </TOKENS>
+
+<FORCE>
+	CONST_X = 2.23e-3
+</FORCE>
 
 <GROUPS NUMBER=1>
 	1	w	wall

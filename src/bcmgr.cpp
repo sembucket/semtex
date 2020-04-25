@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // bcmgr.cpp: class functions for managing boundary conditions.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -208,7 +208,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: bcmgr.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
 
 #include <sem.h>
 
@@ -1001,6 +1001,8 @@ void BCmgr::maintainPhysical (const Field*             master,
 // ---------------------------------------------------------------------------
 // Update storage that (on account of requiring products of terms)
 // must be computed from data which are currently in physical space.
+//
+// nCom is the number of velocity components.  
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = master -> _bsys -> BCs (0);
@@ -1023,7 +1025,7 @@ void BCmgr::maintainPhysical (const Field*             master,
       offset = B -> dOff ();
       skip   = B -> dSkip();
       j      = i * _nP;
-      Veclib::copy (_nP, Us[0] -> _plane[k] + offset, skip, _u[0][k] + j, 1);	
+      Veclib::copy (_nP, Us[0] -> _plane[k] + offset, skip, _u[0][k] + j, 1);
       Veclib::copy (_nP, Us[1] -> _plane[k] + offset, skip, _v[0][k] + j, 1);
       if (nCom == 3)
 	Veclib::copy (_nP, Us[2] -> _plane[k] + offset, skip, _w[0][k] + j, 1);
@@ -1044,7 +1046,7 @@ void BCmgr::maintainFourier (const int_t      step   ,
 // boundary conditions, see ref [1].  Storage order for each edge
 // represents a CCW traverse of element boundaries.
 //
-// If the velocity field varies in time on HOPB field boundaries
+// If the velocity field varies in time on HOPBC field boundaries
 // (e.g. due to time-varying BCs) the local fluid acceleration will be
 // estimated from input velocity fields by explicit extrapolation if
 // timedep is true.  This correction cannot be carried out at the

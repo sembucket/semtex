@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sem2nek.cpp: read a semtex input file, print a NEKTON-style input file.
 //
-// Copyright (c) 1997 <--> $Date$,  Hugh Blackburn
+// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $,  Hugh Blackburn
 //
 // This file is part of Semtex.
 // 
@@ -32,10 +32,10 @@
 // the others need not be set.  Output concentrates on mesh & BC descriptions,
 // other sections may need to be edited by hand.
 //
-// $Id$
+// $Id: sem2nek.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: sem2nek.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <cstdlib>
 #include <iomanip>

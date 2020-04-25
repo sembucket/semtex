@@ -16,7 +16,7 @@
 // SVV_EPSN <==> \epsilon_{zr}, SVV_MN <==> M_zr
 // SVV_EPSZ <==> \epsilon_\phi, SVV_MZ <==> M_\phi
 //
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2004 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // 1.  C Xu & R Pasquetti (2004), 'Stabilized spectral element
 //     computations of high Reynolds number incompressible flows', JCP
@@ -28,7 +28,7 @@
 //     3389--3405.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: svv.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <map>
 

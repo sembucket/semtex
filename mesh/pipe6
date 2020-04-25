@@ -1,6 +1,6 @@
 # 150 Element pipe flow dns grid
 # Resolution chosen to closely approximate Eggels etal (1994).
-#   The mesh has 25 streamwise and 6 radial elements. The growth rate of
+# The mesh has 25 streamwise and 6 radial elements. The growth rate of
 # the elements is $r = 1.5783$. With these settings:
 # 		N_P = 10
 #		N_Z = 96
@@ -24,14 +24,12 @@
 <TOKENS>
 	Re_D	= 5000
 	KINVIS	= 1/Re_D
-	FFX     = 0.0188
+
 	C_VD	= 40
 	C_SMAG	= 0.1
 	CALCFLX = 0.00855625
 
 	REFVIS  = 4*KINVIS
-
-	TOL_REL = 1e-10
 
 	D_T_ok1	= 0.00075
 	D_T_ok2	= 0.001
@@ -51,10 +49,11 @@
 	IO_HIS	= 10
 
 	CHKPOINT  = 1
-	ITERATIVE = 0
-	AVERAGE   = 0
-
 </TOKENS>
+
+<FORCE>
+	CONST_X = 0.0188
+</FORCE>
 
 <GROUPS NUMBER=2>
 	1	w	wall

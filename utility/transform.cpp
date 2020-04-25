@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transform.cpp: carry out Fourier and/or 2D polynomial transform of data.
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -34,7 +34,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: transform.cpp,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

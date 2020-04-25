@@ -1,7 +1,7 @@
 ##############################################################################
 # (GNU) Makefile for spectral element solvers.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:03 hmb Exp $
 ##############################################################################
 
 # -- $MAKE supplies the path to GNU make. Since it's typical that make
@@ -83,11 +83,11 @@ parlib:
 all: libs
 	cd utility;  $(MAKE) clean; $(MAKE) -s all
 	cd elliptic; $(MAKE) clean; $(MAKE) -s
-	cd dns;      $(MAKE) clean; $(MAKE) -s; $(MAKE) -s tbcs
+	cd dns;      $(MAKE) clean; $(MAKE) -s
 
 # ----------------------------------------------------------------------------
 # Compile parallel executables.
 
 parallel: parlib
-	cd dns; $(MAKE) MPI=1; $(MAKE) tbcs MPI=1
+	cd dns; $(MAKE) MPI=1
 	cd elliptic; $(MAKE) MPI=1

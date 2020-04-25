@@ -2,8 +2,8 @@
 # Exact solution sinPix sinhPIy / PI coshPI.
 
 <USER>
-	Geometry 2D-Cartesian
 	Exact    sin(PI*x)*sinh(PI*y)/(PI*cosh(PI))
+	c =      sin(PI*x)*sinh(PI*y)/(PI*cosh(PI))
 </USER>
 
 <TOKENS>

@@ -1,6 +1,3 @@
-# Output of:
-# make_hugh_points.perl meter_points.dat > hugh-points.dat
-# ----------------------------------------------------------------------
 <FIELDS>
 	u v p
 </FIELDS>
@@ -14,12 +11,12 @@
 	D_T         = 0.001
 	Re          = 1000.0
 	KINVIS      = 1/Re
-	CHKPOINT    = 1
-        AVERAGE     = 0
-        ITERATIVE   = 0
 	IO_FLD      = 1000
-	FFX         = 150*KINVIS
 </TOKENS>
+
+<FORCE>
+	CONST_X = 150*KINVIS
+</FORCE>
 
 <GROUPS NUMBER=2>
 	1	w	wall

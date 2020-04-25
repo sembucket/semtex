@@ -1,7 +1,7 @@
 /*****************************************************************************
  *                  3^i TENSOR & VECTOR CALCULATIONS
  *
- * Copyright (c) 1992 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1992 <--> $Date: 2019/05/30 06:36:13 $, Hugh Blackburn
 
  * NB: In all the following calculations, the 3x3 tensor which is used as
  * input is supplied as a 1-D array of double. It is assumed that the tensor
@@ -39,7 +39,7 @@
  *****************************************************************************/
 
 static char
-RCSid[] = "$Id$";
+RCSid[] = "$Id: tensorcalcs.c,v 9.1 2019/05/30 06:36:13 hmb Exp $";
 
 #include <stdio.h>	
 #include <math.h>

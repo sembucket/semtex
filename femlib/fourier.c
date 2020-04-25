@@ -1,7 +1,7 @@
 /*****************************************************************************
  * fourier.c
  *
- * Copyright (c) 1999<-->$Date$, Hugh Blackburn
+ * Copyright (c) 1999<-->$Date: 2019/05/30 06:36:06 $, Hugh Blackburn
  *
  * 1D Fourier transform routines for real data fields based on FFTPACK
  * or Temperton FFT routines, or vendor-supplied alternatives.
@@ -35,7 +35,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-/* $Id$ */
+/* $Id: fourier.c,v 9.1 2019/05/30 06:36:06 hmb Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,14 +60,13 @@ void dDFTr (double*     data,
  * ntrn: number of transforms to perform (also skip in data).
  * sign: transform direction: +1 ==> r-->c, -1 ==> c-->r.
  *
- * Notes:
- * -----
- * (1) Data are scaled/normalized with 1/tlen when sign is +1, so that
- *     the zeroth Fourier mode contains the spatial average value.
- * (2) After forward (r-->c) transform, data are ordered so that within
- *     each transform, the zeroth mode datum comes first.  The zeroth
- *     mode is followed by the real datum from the maximum frequency mode,
- *     after which the real and imaginary parts for each mode alternate.
+ * Notes: ----- (1) Data are scaled/normalized with 1/tlen when sign
+ * is +1, so that the zeroth Fourier mode contains the spatial average
+ * value.  (2) After forward (r-->c) transform, data are ordered so
+ * that within each transform, the zeroth mode datum comes first.  The
+ * zeroth mode is followed by the real datum from the maximum
+ * frequency (Nyquist) mode, after which the real and imaginary parts
+ * for each mode alternate.
  * ------------------------------------------------------------------------- */
 {
   const char      routine[] = "dDFTr";

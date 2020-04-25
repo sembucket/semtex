@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // rectmesh.cpp: create a session file for a rectangular mesh of elements.
 //
-// Copyright (c) 2000 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2000 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
 //
 // This file is part of Semtex.
 // 
@@ -35,7 +35,7 @@
 // order of 7, and "wall" group boundaries around the domain border.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: rectmesh.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
 
 #include <sem.h>
 

@@ -1,11 +1,16 @@
 #!/bin/csh
 #
-# resubmit session time
-# returns 1 if the final time in session.rst exceeds time (i.e. no resubmit).
+# Usage: resubmit session time
 #
-# If no gawk, try nawk.
+# Returns 1 if the final time in session.rst exceeds time (i.e. no
+# resubmit), else 0.  This can be used in many queuing systems as part
+# of a termination test.
+#
+# If no awk, or gawk, try nawk.
+#
+# $Id: resubmit,v 9.1 2019/05/30 06:36:12 hmb Exp $
 
 head $1.rst | grep Time | grep -v step | \
-	gawk '{t = $1} \
+	awk '{t = $1} \
 	END {if (t >= '$2') exit 1; else exit 0 }'
 

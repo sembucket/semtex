@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // family.C
 //
-// Copyright (c) 2003 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2003 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // This file maintains a family structure for vectors of real. Doing
 // it in C++ ensures that we can delete copies of arrays allocated
@@ -31,7 +31,7 @@
 // 02110-1301 USA.
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: family.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 
