@@ -18,15 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - id: checkout_mirror_upstream
-    - name: Checkout 'upstream' branch
+      name: Checkout 'upstream' branch
       uses: actions/checkout@v2
       with:
-        ref: upstream/master
-      run: |
-        echo "Checked out 'upstream' branch in GitHub mirror repository"
+        ref: master
 
-    - id: add_upstream_remote
-    - name: Add 'upstream' remote
+    - id: sync_upstream_remote
+      name: Sync 'upstream' remote
       run: |
         chmod +x .github/workflows/sync-upstream.sh
         .github/workflows/sync-upstream.sh
