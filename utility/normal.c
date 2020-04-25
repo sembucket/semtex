@@ -1,18 +1,24 @@
 /*****************************************************************************
- * normal.c: use veclib's random number generation routines (ran2 +
- * gasdev) to produce Gaussian-distributed pseudo-random numbers with
- * nominated mean and standard deviation (defaults: 0 & 1).
+ * normal: utility to produce a set of (Gaussian-distributed) random
+ * numbers.
  *
- * Copyright (c) 2008 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
- *
- * USAGE
+ * Usage
  * -----
  * normal [-h] [-n num] [-m mean] [-d sdev] [-s seed]
  *
- * A positive value of seed causes the random number seed to be
- * generated from wall-clock time (and the value is otherwise
- * irrelevant). A negative value is used directly for the seed.
+ * Synopsis
+ * --------
+ * Use veclib's random number generation routines (ran2 + gasdev) to
+ * produce Gaussian-distributed pseudo-random numbers with nominated
+ * mean and standard deviation (defaults: 0 & 1).  A positive value of
+ * seed causes the random number seed to be generated from wall-clock
+ * time (and the value is otherwise irrelevant). A negative value is
+ * used directly for the seed.
  *
+ * @file utility/normal.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 2008 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -32,7 +38,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: normal.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: normal.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

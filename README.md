@@ -1,5 +1,15 @@
-				S E M T E X
-				===========
+# Semtex top-level README file (semtex/README)
+
+# List of other sub-pages
+
+* Page [semtex/veclib/README]  (@ref veclib_readme)
+* Page [semtex/femlib/README]  (@ref femlib_readme)
+* Page [semtex/utility/README] (@ref utility_readme)
+
+_____________________________________________________________________________
+
+semtex README
+=============
 
 Synopsis
 --------
@@ -22,6 +32,23 @@ Spectral elements are used to discretise planar geometries, with
 solution variations in the third (homogeneous/periodic) direction
 accommodated via Fourier expansions (i.e. spatial discretisation is 2D
 spectral element X Fourier).
+
+References
+----------
+
+The first of these is the recommended starting point; it provides an
+introductory overview of the code and its utilities.  The second gives
+details of the cylindrical-coordinate formulation.
+
+1. Blackburn HM, Lee D, Albrecht T & Singh, J (2019) Semtex: a
+spectral element–Fourier solver for the incompressible Navier–Stokes
+equations in cylindrical or Cartesian coordinates. Computer Physics
+Communications V245: 106804-1–13.
+
+2. Blackburn HM & Sherwin SJ (2004) Formulation of a Galerkin spectral
+element–Fourier method for three-dimensional incompressible flows in
+cylindrical geometries. Journal of Computational Physics V197N2:
+759–778.
 
 Technical details
 -----------------
@@ -48,6 +75,13 @@ preconditioned conjugate-gradient methods allied with tensor-product
 methods.  The code typically operates most efficiently with moderate
 spectral element polynomial orders (4-10).
 
+The standard real data type in semtex is 64-bit double precision
+(double in C, DOUBLE PRECISION in Fortran) while the standard integer
+type is usually 32-bit (typically, whatever int/INTEGER is on the
+machine you are running on).  These two types are referred to by the
+semtex-standard typedefs real_t and int_t (see femlib/cfemdef.h).
+Strings are by default 2048 (STR_MAX) characters long.
+
 Distribution
 ------------
 
@@ -60,11 +94,11 @@ upper-level codes are written in C++.
 Source for application programs can be found in three upper-level
 directories:
 
-elliptic   elliptic (Laplace, Poisson, Helmholtz) solver.
-dns        Navier--Stokes DNS solver (uses same elliptic solver routines).
-utility/*  various utility programs.
+elliptic:   elliptic (Laplace, Poisson, Helmholtz) solver.  
+dns:        Navier--Stokes DNS solver (uses same elliptic solver routines).  
+utility/*:  various utility programs.
 
-A user guide is provided in the doc directory.
+A user guide and HTML documentation is provided in the doc directory.
 
 Required third-party software
 -----------------------------
@@ -76,7 +110,7 @@ Required third-party software
 
 3. C++, C and Fortran compilers (OSX needs both vendor-supplied Xcode
    for C/C++ and a 3rd-party Fortran compiler, installed e.g. via
-   homebrew as part of the gcc compiler suite);
+   homebrew/macports/fink as part of the gcc compiler suite);
 
 4. LAPACK and BLAS libraries;
 
@@ -91,7 +125,23 @@ Optional/useful third-party software
 
 3. Tecplot and/or Paraview, VisIt: for visualisation and some postprocessing.
 
-4. Supermongo: an old 2D plotting package, for which some macros are supplied.
+4. Supermongo: an old 2D plotting package, for which some macros are
+supplied.  You may need to buy a licence for supermongo.
+
+Preliminary notes for Mac OS X users
+------------------------------------
+
+The code is designed to compile on Unix machines, including Mac OS X
+(which is based on BSD Unix) and of course, Linux. In fact, since
+2004, Semtex has predominantly been developed on OS X.  For OS X, you
+will also need to have installed: Xcode (from Apple), and (at least) a
+Fortran 77 (or F90, F95) compiler.  For the latter, it is usual to
+install one of the GNU/Unix gcc compiler suites, available through one
+of the standard open-source software ports for OS X (macports,
+homebrew, or fink).  You might also wish to install an MPI setup, such
+as openmpi.  There is no need to install your own BLAS or LAPACK, as
+these usually come as a standard part of Xcode (in the Accelerate
+package).
 
 Building - Introduction
 -----------------------
@@ -127,8 +177,8 @@ CMakeLists.txt in various directories (and you can ignore any supplied
 Makefiles).
 
 Make a build directory at the top level of the directory tree (which
-contains this README file) as <build_dir>: the name used to replace
-<build_dir> is your choice (we usually use "build").  This is where
+contains this README file) as build_dir: the name used to replace
+build_dir is your choice (we usually use "build").  This is where
 all the executables will end up, and you could conveniently add this
 directory to your PATH.  If you do not have MPI/openmpi installed on
 your system, only the serial versions of the solvers dns and elliptic
@@ -136,8 +186,8 @@ will be built.  If cmake can find a working MPI installation, parallel
 versions will also be built (which are called dns_mp and elliptic_mp).
 All the other resulting files are for serial execution only.
 
-  %> mkdir <build_dir>
-  %> cd <build_dir>
+  %> mkdir build_dir
+  %> cd build_dir
   %> cmake ..
   %> make
   %> ctest
@@ -234,9 +284,9 @@ have called FEML (for Finite Element Markup Language).  There are a
 number of example session files in the mesh directory.  Other files
 have standard extensions:
 
-session.num  Global node numbers, produced by enumerate utility.
-session.fld  Solution/field file.  Binary format by default.
-session.rst  Restart file.  Read in to initialise solution if present.
+session.num  Global node numbers, produced by enumerate utility.  
+session.fld  Solution/field file.  Binary format by default.  
+session.rst  Restart file.  Read in to initialise solution if present.  
 session.avg  Average file.  Used to store time-mean averages.
 
 After writing a new session file it is best to run meshpr on it before
@@ -251,26 +301,26 @@ Utilities
 
 Can be found in the utility directory, including:
 
-enumerate Generate global node numbering, with RCM optimization.
-compare   Generate restart files, compare solutions to a function.
-convert   Convert field file formats (IEEE-big/little, ASCII).
-meshpr    Generate 2D mesh locations for plotting or checking.
-addfield  Add vorticity, also divergence, helicity, etc to a field file.
-sem2tec   Convert field files to Amtec Tecplot format (OK with Paraview/VisIt).
-project   Convert a field file to a different order interpolation.
-interp    Interpolate field file from one 2D mesh to another.
-probe     Probe field file at specified points.
-noiz      Add a random perturbation to a field file.
-calc      An interactive calculator that calls the built-in function parser.
-rstress   Compute a Reynolds stresses from a .avg file, subtract averages.
-rectmesh  Generate a start-out session file from a list of x and y values.
+enumerate Generate global node numbering, with RCM optimization.  
+compare   Generate restart files, compare solutions to a function.  
+convert   Convert field file formats (IEEE-big/little, ASCII).  
+meshpr    Generate 2D mesh locations for plotting or checking.  
+addfield  Add vorticity, also divergence, helicity, etc to a field file.  
+sem2tec   Convert field files to Tecplot format (OK with Paraview/VisIt too).  
+project   Convert a field file to a different order interpolation.  
+interp    Interpolate field file from one 2D mesh to another.  
+probe     Probe field file at specified points.  
+noiz      Add a random perturbation to a field file.  
+calc      An interactive calculator that calls the built-in function parser.  
+rstress   Compute a Reynolds stresses from a .avg file, subtract averages.  
+rectmesh  Generate a start-out session file from a list of x and y values.  
 
 Most executables have a -h command line option which gives a help
 prompt.  If that is insufficient help, please read the header section
 of the associated source files or the semtex user guide.
 
-User guide
-----------
+User guide and doxygen documentation
+------------------------------------
 
 Assuming you have a latex/pdflatex system installed: 
 
@@ -278,14 +328,20 @@ Assuming you have a latex/pdflatex system installed:
 
 to produce userguide.pdf.
 
+Assuming you have doxygen (and dot) also installed:
+
+  %> cd doc; make doxygen
+
+and open doc/html/index.html in a browser.
+
 Author
 ------
 
-Hugh M. Blackburn
-Department of Mechanical & Aerospace Engineering
-Monash University
-Vic 3800
-Australia
+Hugh M. Blackburn  
+Department of Mechanical & Aerospace Engineering  
+Monash University  
+Vic 3800  
+Australia  
 mailto:hugh.blackburn@monash.edu
 
 Licencing
@@ -303,40 +359,24 @@ consult the accompanying COPYING file for details.
 List of major revisions
 -----------------------
 
-1995: Base 2D version of code completed in C.                  Semtex-1
+1995: Semtex-1:   ase 2D version of code completed in C.         
+1996: Semtex-2:   C --> C++ conversion completed.  
+1996: Semtex-3:   2D Cartesian/Fourier (i.e. 3D periodic) spaces.  
+1997: (Scat, separate code) Heat/scalar transfer supported.  
+1997: Semtex-4.0: Cylindrical solutions in 2D or 3D supported.      
+1997: Semtex-4.1: Generalized prime factor FFT routines.  
+1997: Semtex-4.2: Massless particle tracking.  
+1997: Semtex-5.0: Concurrent execution with MPI.  
+1998: Semtex-5.1: Improved vectorization & IO performance.  
+1999: Semtex-5.3: Mixed/Robin BC type added.  
+2003: Semtex-5.5: Adopt standard C++ libraries wherever possible.       
+2004: Semtex-6:   Cylindrical coordinate/3D code exponentially convergent.  
+2004: Semtex-6:   Mac OSX port -- filenames no longer case-sensitive.  
+2010: Semtex-7:  "I do not now recall".  
+2016: Semtex-8:   Generalised body forces supported in DNS.  
+2018: Semtex-9:   Scalar transport and DNS code merged.  
+2019: Semtex-9.1: cmake adopted as baseline compilation system.          
 
-1996: C --> C++ conversion completed.                          Semtex-2
+------------------------------------------------------------------------------
 
-1996: 2D Cartesian/Fourier (i.e. 3D periodic) spaces.          Semtex-3
-
-1997: Heat/scalar transfer supported.
-
-1997: Cylindrical solutions in 2D or 3D supported.             Semtex-4.0
-
-1997: Generalized prime factor FFT routines.                   Semtex-4.1
-
-1997: Massless particle tracking.                              Semtex-4.2
-
-
-1997: Concurrent execution with MPI.                           Semtex-5.0
-
-1998: Improved vectorization & IO performance.                 Semtex-5.1
-
-1999: Mixed BC type added.                                     Semtex-5.3
-
-2003: Adopt standard C++ libraries wherever possible.          Semtex-5.5
-
-2004: Cylindrical coordinate/3D code exponentially convergent. Semtex-6
-
-2004: Mac OSX port -- filenames no longer case-sensitive.      Semtex-6
-
-....:                                                          Semtex-7
-
-2016: Generalised body forces supported in DNS.                Semtex-8
-
-2018: Scalar transport and DNS code merged                     Semtex-9
-
-2018: cmake adopted as baseline compilation system.            Semtex-9.1
-
---
-$Id: README,v 9.1 2019/05/30 06:36:03 hmb Exp $
+$Id: README.md,v 1.1 2020/01/06 04:35:44 hmb Exp $

@@ -1,23 +1,47 @@
-///////////////////////////////////////////////////////////////////////////////
-// repmesh.cpp: read semtex session file: NODES and ELEMENTS, and
-// generate planar reflection about either x or y axis, or generate
-// rotation about named point.  Combine the result, deleting
-// non-unique NODES.  Print on cout.
-//
-// Hand-editing will still be required to make valid SURFACES and
-// CURVES sections.
-//
-// repmesh [-x || -y] [-r x0 y0 ang nrep] [-h] session
-//
-// Either X or Y reflections change the sense of rotation around
-// elements.  Angular rotations are taken CCW, measured in degrees.
-// Nrep is the integer number of times to repeat the rotation.
-//
-// Warning: This code is not robust to errors or irregularities in the
-// input session file.
+/*****************************************************************************
+ * repmesh: utility to read semtex session file: NODES and ELEMENTS, and
+ * generate planar reflection about either x or y axis, or generate
+ * rotation about named point.  Combine the result, deleting
+ * non-unique NODES.  Print on stdout.
+ *
+ * Hand-editing will still be required to make valid SURFACES and
+ * CURVES sections.
+ *
+ * Usage
+ * -----
+ * repmesh [-x || -y] [-r x0 y0 ang nrep] [-h] session
+ *
+ * Either X or Y reflections change the sense of rotation around
+ * elements.  Angular rotations are taken CCW, measured in degrees.
+ * Nrep is the integer number of times to repeat the rotation.
+ *
+ * Warning: This code is not robust to errors or irregularities in the
+ * input session file.
+ *
+ * @file utility/repmesh.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2000 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: repmesh.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: repmesh.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 

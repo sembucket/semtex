@@ -1,24 +1,24 @@
 /*****************************************************************************
- * noiz.c: add a random Gaussian perturbation to a velocity field.
- *         Optionally filter out a named mode.
+ * noiz: utility to add a random Gaussian perturbation to a velocity
+ * field.  Optionally filter out a named mode.
  *
- * Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
- *
- * USAGE
+ * Usage
  * -----
  * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [-s seed] [input[.fld]
  *
- * SYNOPSIS
+ * Synopsis
  * --------
  * Noiz reads a field file and adds a gaussian-distributed random variable
  * of specified standard deviation to each velocity datum.  Fields may be in
  * ASCII or binary format, output is in same format.  Optionally, noise
  * is added just to a prescribed Fourier mode (mode numbers begin at zero).
  *
- * NOTES
- * -----
  * Default value of perturbation is 0.0.
  *
+ * @file utility/noiz.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1996 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -38,7 +38,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: noiz.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: noiz.c,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

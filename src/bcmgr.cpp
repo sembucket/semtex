@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // bcmgr.cpp: class functions for managing boundary conditions.
 //
-// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/11/08 07:07:41 $, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -208,7 +208,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: bcmgr.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
+static char RCS[] = "$Id: bcmgr.cpp,v 9.2 2019/11/08 07:07:41 hmb Exp $";
 
 #include <sem.h>
 
@@ -1629,7 +1629,7 @@ void BCmgr::evaluateCNBCu (const Field* P    ,
 
     Veclib::smul    (_nP, 1.0, dv, 1, fb, 1);
     Veclib::vadd    (_nP, tgt, 1, fb, 1, tgt, 1);
-
+    
 #endif
   }
 }

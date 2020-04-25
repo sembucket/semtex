@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.cpp: routines for statistical analysis of AuxFields.
 //
-// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/07/23 04:07:03 $, Hugh Blackburn
 //
 // The collection of statistics is controlled by the setting of the
 // AVERAGE token. Legal values are 0 (default), 1, 2, 3. The routines
@@ -34,10 +34,10 @@
 //
 //                 / uu uv uc \        /  A  B  G \
 //                 | .  vv vc |     =  |  .  C  H |
-//                 \ .  .  cc /        \  .  .  K /
+//                 \ .  .  cc /        \  .  .  J /
 //
 //                 / uu uv uw uc \     /  A  B  D  G \
-//                 | .  vv vw vu |  =  |  .  C  E  H |
+//                 | .  vv vw vc |  =  |  .  C  E  H |
 //                 | .  .  ww wc |     |  .  .  F  I |
 //                 \ .  .  .  cc /     \  .  .  .  J /
 //
@@ -99,7 +99,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: statistics.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
+static char RCS[] = "$Id: statistics.cpp,v 9.2 2019/07/23 04:07:03 hmb Exp $";
 
 #include <sem.h>
 

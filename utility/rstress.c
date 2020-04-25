@@ -1,22 +1,22 @@
 /*****************************************************************************
- * rstress.c has two uses:
+ * rstress: utility which has two usage modes, either computing
+ * Reynolds stresses or elementrary arithmetic operations on field
+ * files.
  *
- * 1. When one inout file is supplied, compute Reynolds stresses: the
+ * 1. When one input file is supplied, compute Reynolds stresses: the
  * input is assumed to be a .avg field file produced by running DNS
  * with AVERAGE=2.
 
  * 2. Alternatively, when two input files are supplied, compute a
  * single outcome file via elementary arithmetic operations (+,-,*,/).
  *
- * Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
- * 
- * USAGE
+ * Usage
  * -----
- *
  * rstress [options] avg.file [field.file]
+ *
  * options:
  * -h         ... print this message
- * -<s,a,m,d> ... file ops subtract, add, multiply, divide [Default: subtract]
+ * -<s|a|m|d> ... file ops subtract, add, multiply, divide [Default: subtract]
  *
  * Binary arithmetic operations only have significance when two files
  * are supplied.  For subtract and divide,
@@ -29,9 +29,8 @@
  * instantaneous file).  The operation is only performed on the
  * variables present in both files.
  *
- * SYNOPSIS
+ * Synopsis
  * --------
- *
  * Rstress is primarily designed to deal with field-average files.  If
  * called with just an average file (e.g. session.avg) as input, it
  * tries to compute Reynolds stress components using the correlations
@@ -56,6 +55,10 @@
  *
  * Product terms are computed without dealiasing.
  *
+ * @file utility/rstress.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1997 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -75,7 +78,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: rstress.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: rstress.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>

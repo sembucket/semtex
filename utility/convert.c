@@ -1,10 +1,13 @@
 /*****************************************************************************
- * convert:  Format conversion program for sem-compatible field files.
+ * convert: Format conversion utility for semtex-compatible field files.
  *
- * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
+ * Usage
+ * -----
+ * convert [-h] [-b|s|a] [-v] [-n dump] [-o output] [-z] [input[.fld]
  *
- * USAGE: convert [-h] [-format] [-v] [-n dump] [-o output] [-z] [input[.fld]
  *
+ * Synopsis
+ * --------
  * Default action is to convert binary to ASCII files or vice versa.
  *
  * Optional argument format can be one of:
@@ -35,6 +38,10 @@
  *                               binary/BINARY assumed to be machine's default.
  *                               binary IEEE little-endian
  *                               binary IEEE big-endian
+ * @file utility/convert.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1994 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -54,7 +61,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: convert.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: convert.c,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

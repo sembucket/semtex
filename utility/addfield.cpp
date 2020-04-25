@@ -1,86 +1,85 @@
-//////////////////////////////////////////////////////////////////////////////
-// addfield.cpp: process semtex/NEKTON-type field files, computing and
-// adding vorticity and divergence, rate of strain magnitude, velocity
-// gradient discriminant, etc.
-//
-// Copyright (c) 1998 <--> $Date: 2019/05/30 06:36:12 $, 
+/*****************************************************************************
+ * addfield: utility to process semtex/NEKTON-type field files, adding
+ * derived quantities such as vorticity.
+ *
+ * Usage
+ * -----
+ * addfield [options] -s session session.fld
+ *   options:
+ *   -h        ... print this message
+ *   -q        ... add kinetic energy per unit mass 0.5(u.u) (default)
+ *   -d        ... add divergence div(u)
+ *   -v        ... add vorticity w=curl(u)
+ *   -e        ... add enstrophy 0.5(w.w)
+ *   -H        ... add helicity 0.5(u.w)
+ *   -g        ... add strain rate magnitude sqrt(2SijSji)
+ *   -D        ... add discriminant of velocity gradient tensor
+ *                 NB: divergence is assumed to be zero.
+ *   -J        ... add vortex core measure of Jeong & Hussain. (3D only)
+ *   -a        ... add all fields derived from velocity (above)
+ *   -f <func> ... add a computed function <func> of x, y, z, t, etc.
+ *   -n        ... do not perform mass-matrix smoothing of added fields
+ *
+ * Reserved field names used/assumed
+ * ---------------------------------
+ *
+ * u -- x velocity component (cylindrical: axial)
+ * v -- y velocity component (cylindrical: radial)
+ * w -- z velocity component (cylindrical: azimuthal)
+ * p -- pressure/density
+ * c -- scalar
+ *
+ * The following are reserved names, not used by addfield
+ * ------------------------------------------------------
+ *
+ * A -- uu covariance
+ * B -- uv covariance
+ * C -- vv covariance
+ * D -- uw covariance
+ * E -- vw covariance
+ * F -- ww covariance
+ * 
+ * Computed variables
+ * ------------------
+ *
+ * d -- divergence
+ * e -- enstrophy 0.5*(r^2 + s^2 + t^2) = 0.5 (omega . omega)
+ * f -- a computed function of spatial variables
+ * g -- strain rate magnitude sqrt(2SijSij)
+ * q -- kinetic energy per unit mass 0.5*(u^2 + v^2 + w^2) = 0.5 (u . u)
+ * r -- x component vorticity
+ * s -- y component vorticity
+ * t -- z component vorticity
+ * H -- helicity  0.5*(u*r + v*s + w*t) = 0.5 (u . omega) .
+ * J -- vortex core identification measure, see [2]. 3D only.
+ * D -- discriminant of velocity gradient tensor, see [1].
+ *
+ *
+ * NB: product terms -- such as are used to calculate enstrophy,
+ * helicity, the invariants and discriminant of the velocity gradient
+ * tensor, and the strain rate magnitude, all computed in physical
+ * space -- are not dealiased.  Therefore it is advisable to project
+ * the original field to a greater number of planes (3/2 rule) before
+ * these terms are calculated, otherwise the products can be quite
+ * different from what would be expected (especially if N_Z is small,
+ * say 4). If this is done you need to edit a matching session file
+ * with the appropriate value of N_Z.
+ *
+ * References
+ * ----------
+ *
+ * 1. Chong, Perry & Cantwell (1990) A general classification of
+ * three-dimensional flow fields, PF(A) 2:765--777; see also Blackburn
+ * et al. (1996) JFM 310:269--292
+ *
+ * 2. Jeong & Hussain (1995) On the identification of a vortex, JFM
+ * 285:69--94
+ *
+ * @file utility/addfield.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1998 <--> $Date: 2020/01/06 04:35:44 $, 
 //   Hugh Blackburn, Murray Rudman, Jagmohan Singh
-//
-//
-// Usage:
-// -----
-// addfield [options] -s session session.fld
-//   options:
-//   -h        ... print this message
-//   -q        ... add kinetic energy per unit mass 0.5(u.u) (default)
-//   -d        ... add divergence div(u)
-//   -v        ... add vorticity w=curl(u)
-//   -e        ... add enstrophy 0.5(w.w)
-//   -H        ... add helicity 0.5(u.w)
-//   -g        ... add strain rate magnitude sqrt(2SijSji)
-//   -D        ... add discriminant of velocity gradient tensor
-//                 NB: divergence is assumed to be zero.
-//   -J        ... add vortex core measure of Jeong & Hussain. (3D only)
-//   -a        ... add all fields derived from velocity (above)
-//   -f <func> ... add a computed function <func> of x, y, z, t, etc.
-//
-// Reserved field names used/assumed:
-// ---------------------------------
-//
-// u -- x velocity component (cylindrical: axial)
-// v -- y velocity component (cylindrical: radial)
-// w -- z velocity component (cylindrical: azimuthal)
-// p -- pressure/density
-// c -- scalar
-//
-// The following are reserved names, not used by addfield.
-// ------------------------------------------------------
-//
-// A -- uu covariance
-// B -- uv covariance
-// C -- vv covariance
-// D -- uw covariance
-// E -- vw covariance
-// F -- ww covariance
-// 
-// Computed variables:
-// ------------------
-//
-// d -- divergence
-// e -- enstrophy 0.5*(r^2 + s^2 + t^2) = 0.5 (omega . omega)
-// f -- a computed function of spatial variables
-// g -- strain rate magnitude sqrt(2SijSij)
-// q -- kinetic energy per unit mass 0.5*(u^2 + v^2 + w^2) = 0.5 (u . u)
-// r -- x component vorticity
-// s -- y component vorticity
-// t -- z component vorticity
-// H -- helicity  0.5*(u*r + v*s + w*t) = 0.5 (u . omega) .
-// J -- vortex core identification measure, see [2]. 3D only.
-// D -- discriminant of velocity gradient tensor, see [1].
-
-//
-// NB: product terms -- such as are used to calculate enstrophy,
-// helicity, the invariants and discriminant of the velocity gradient
-// tensor, and the strain rate magnitude, all computed in physical
-// space -- are not dealiased.  Therefore it is advisable to project
-// the original field to a greater number of planes (3/2 rule) before
-// these terms are calculated, otherwise the products can be quite
-// different from what would be expected (especially if N_Z is small,
-// say 4). If this is done you need to edit a matching session file
-// with the appropriate value of N_Z.
-//
-// References
-//-----------
-//
-// [1] Chong, Perry & Cantwell (1990) A general classification of
-// three-dimensional flow fields, PF(A) 2:765--777; see also Blackburn
-// et al. (1996) JFM 310:269--292
-//
-// [2] Jeong & Hussain (1995) On the identification of a vortex, JFM
-// 285:69--94
-//
-//
-//
 // --
 // This file is part of Semtex.
 // 
@@ -100,7 +99,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: addfield.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: addfield.cpp,v 9.4 2020/01/06 04:35:44 hmb Exp $";
 
 #include <sem.h>
 #include <tensorcalcs.h>
@@ -121,7 +120,7 @@ enum {
 static char  prog[] = "addfield";
 
 
-static void  getargs  (int, char**, char*&, char*&, char*&, bool[]);
+static void  getargs  (int, char**, char*&, char*&, char*&, bool[], bool&);
 static void  getMesh (const char*,vector<Element*>&);
 static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&,char*&);
 static bool  doSwap  (const char*);
@@ -142,7 +141,7 @@ int main (int    argc,
   vector<AuxField*>          addbuf, outbuf;
   int_t                      i , j, k, p, q, nComponent, nFields;
   int_t                      np, nz, nel, allocSize, NCOM, NDIM, outbuf_len;
-  bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
+  bool                       add[FLAG_MAX], need[FLAG_MAX], gradient, smooth;
   FEML*                      F;
   Mesh*                      M;
   BCmgr*                     B;
@@ -160,8 +159,9 @@ int main (int    argc,
 
   Femlib::initialize (&argc, &argv);
   for (i = 0; i < FLAG_MAX; i++) add [i] = need [i] = false;
+  smooth = true;
 
-  getargs (argc, argv, session, dump, func, add);
+  getargs (argc, argv, session, dump, func, add, smooth);
 
   file.open (dump, ios::in);
   if (!file) message (prog, "no field file", ERROR);
@@ -190,7 +190,7 @@ int main (int    argc,
 
   // -- Check if we just have the (first two) cases not requiring derivatives.
 
-  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (i + 1) : 0;
+  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (1 << i) : 0;
   if (p <= 3) gradient = false; else gradient = true;
 
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];  
@@ -320,11 +320,7 @@ int main (int    argc,
 	work = new AuxField (new real_t[allocSize],  nz, elmt);
 	if (NDIM == 3) for (j = 0; j < NCOM; j++) Vij[2][j] -> divY();
 	(*work = *velocity[1]) . divY(); *Vij[2][2] += *work;
-#if 1
-	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] += *work; }
-#else
-	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] -= *work; }
-#endif
+	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[2][1] -= *work; }
       }
   
       // -- Loop over every point in the mesh and compute everything
@@ -371,11 +367,12 @@ int main (int    argc,
 	}
       }
     }
-  
-    for (map<char,AuxField*>::iterator k = addfield.begin();
-         k != addfield.end(); k++, i++)
-      D -> u[0] -> smooth(addfield[k-> first]);
-  
+    
+    if (smooth)
+      for (map<char,AuxField*>::iterator k = addfield.begin();
+	   k != addfield.end(); k++, i++)
+	D -> u[0] -> smooth(addfield[k-> first]);
+    
     outbuf_len = input.size()+addfield.size();
 
     // -- Find if input already contains some of the variables that are
@@ -419,7 +416,8 @@ static void getargs (int    argc   ,
 		     char*& session,
 		     char*& dump   ,
 		     char*& func   ,
-		     bool*  flag   )
+		     bool*  flag   ,
+		     bool&  smooth )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -438,7 +436,8 @@ static void getargs (int    argc   ,
     "                NB: divergence is assumed to be zero. \n"
     "  -J        ... add vortex core measure of Jeong & Hussain (3D only)\n"
     "  -a        ... add all fields derived from velocity (above)\n"
-    "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
+    "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n"
+    "  -n        ... do not perform mass-matrix smoothing on added fields\n";
               
   int_t i, sum = 0;
   char  buf[StrMax];
@@ -468,6 +467,7 @@ static void getargs (int    argc   ,
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
       flag[FUNCTION] = true;
       break;
+    case 'n': smooth = false; break;
     default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 

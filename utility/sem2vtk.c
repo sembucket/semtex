@@ -1,12 +1,16 @@
 /*****************************************************************************
- * sem2vtk: convert a SEM field file to VTK format.
+ * sem2vtk: utility to convert a semtex field file to VTK format.
  *
- * Usage:
+ * Usage
+ * -----
  * sem2vtk [-h] [-c] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
- * Based on code sem2tec by Ron Henderson.
- * Modified by Stefan Schmidt, Chris Cantwell and Thomas Albrecht.
  *
+ * @file utility/sem2vtk.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Based on code sem2tec by Ron Henderson.
+ * Modified by Stefan Schmidt, Chris Cantwell and Thomas Albrecht.
  * --
  * This file is part of Semtex.
  * 
@@ -26,7 +30,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: sem2vtk.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: sem2vtk.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A user guide for semtex spectral element code.
 %
-% $Id: userguide.tex,v 9.5 2019/06/24 12:58:34 hmb Exp $
+% $Id: userguide.tex,v 9.10 2019/10/10 01:53:50 hmb Exp $
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[11pt]{report}
 
@@ -213,9 +213,9 @@ outflow boundary.
 %
 As of \Semtex~V9, DNS variables may optionally contain a scalar
 variable in addition to velocity components and pressure.  If
-requested, evolution of the scalar can be obtained in a frozen,
-pre-supplied velocity field, \ie as solution of an advection--diffusion
-problem.
+requested (by running \verb|dns -f|), evolution of the scalar can be
+obtained in a frozen, pre-supplied velocity field, \ie as solution of
+an advection--diffusion problem.
 
 As suggested in figure~\ref{fig.extrude}, \Semtex\ can solve problems
 in \twod\ domains or in \threed\ domains that can be obtained from
@@ -403,6 +403,68 @@ $\bm{C}$ are dealt with explicitly, so that stable time integration
 generally requires a time-step restriction of CFL type.
 
 %============================================================================
+\section{Mesh resolution\,---\,and design}
+
+This is such a large area of discourse that we can't hope to
+adequately cover it here; the following brief remarks are intended as
+an introduction only.
+
+Since it employs high-order finite element methods in the $(x,y)$
+plane, \Semtex\ offers the choice of element-size-based refinement
+(so-called $h$-refinement) or polynomial-order-based refinement
+(so-called $p$-refinement) in attempting to converge a solution (it is
+an $hp$-type method).  The basis polynomials share convergence
+properties with (orthogonal) Legendre polynomials and the underlying
+goal of mesh refinement is to achieve exponential (`spectral')
+convergence of solutions with respect to polynomial order; this
+typically commences when there are of order $\pi$ polynomials per
+'wavelength' of solution variation \citep{gs77}.
+
+We should point out that $p$-refinement is very straightforward in
+\Semtex; different polynomial orders can be selected simply by varying
+the token \verb|N_P|, the number of mesh points along the edge of
+every element in the problem session file (see \eg
+\S\,\ref{sec.tokens}): the \oned\ polynomial order
+$p=\texttt{N\_P}-1$.
+%
+On the other hand, carrying out $h$-refinement will require a
+completely new session file to be produced, which may imply quite a
+bit more work.
+%
+We also note that computational work per timestep,
+typically dominated by forming the nonlinear terms of the
+\NavSto\ equations, tends to scale like $\texttt{N\_P}^2$.
+%
+Finally, \Semtex\ tends to be most efficient at moderate polynomial
+orders (\eg 4 to 13); it is generally not a good idea to choose either
+very low, or very high, values of $p$.
+
+A rule-of-thumb for mesh design based on the remarks above is to aim
+to have any `significant' rapid variation in solution behaviour
+covered by one or two elements (the goal of $h$-refinement), and then
+carry out whatever $p$-refinement is desired to get well-converged
+results.
+%
+The path of least resistance for \twod\ mesh design is
+generally to produce a session file which one guesses is quite well
+resolved as far as element sizes go, then rely on converging the
+solution by starting on the low end of the $p$ range and then
+increasing $p$ to higher, yet moderate, values in order to commence
+exponential convergence.  A few iterations of mesh design may be
+required when tackling a new problem.
+%
+
+In the $z$-direction, \Semtex\ assumes the solution is periodic and
+uses Fourier expansions (and a 2--3--5-prime-factor FFT).  Choice of
+spanwise length scale $L_z$ is controlled by the token \verb|BETA|,
+where $\beta=2\pi/L_z$, while resolution is controlled by token
+\verb|N_Z|, the number of planes of real data in the $z$ direction
+(the number of complex Fourier modes is then $\texttt{N\_Z}/2$).
+Convergence follows standard rules for Fourier-spectral methods.  See
+\S\,\ref{sec.nz} for discussion regarding possible values for
+\verb|N_Z|.
+
+%============================================================================
 \section{Files}
 
 \Semtex\ uses a text input file which describes the mesh, boundary
@@ -440,9 +502,10 @@ extensions:
 \end{tabbing}
 When writing a new session file it is prudent to run \texttt{meshpr}
 (and/or \texttt{meshpr -c}) on it before trying to use it for
-simulations, since \texttt{meshpr} will catch most of the easier-to-make
-geometric anomalies.  You can also plot up the results using \SM\ or
-other utility as a visual check.
+simulations, since \texttt{meshpr} will catch most of the
+easier-to-make geometric anomalies.  You can also plot up the results
+using \SM\ or other utility (such as \verb|meshplot|) as a visual
+check.
 
 NB: the 10-line ASCII header of any field-type file can quickly be viewed
 using the Unix \verb|head| utility, regardless of the format of
@@ -643,10 +706,10 @@ deliver a numeric value.  The function parser is patterned on the
 has many standard math functions such as $\exp$, $\cos$ and
 $\tan^{-1}$ as well as standard arithmetic operations $+$, $-$, $\ast$
 and $/$.  \verb|TOKENS| can be defined in terms of standard/inbuilt
-\verb|TOKENS| or ones which have been defined earlier.  To see all the
-predefined \verb|TOKENS| and functions, check the \Semtex\ utility
-\verb|"calc -h"|\,---\,\verb|calc| uses the same parser to evaluate
-expressions given on the command line.
+\verb|TOKENS| or ones which have been defined earlier in the list.  To
+see all the predefined \verb|TOKENS| and functions, check the
+\Semtex\ utility \verb|"calc -h"|\,---\,\verb|calc| uses the same
+parser to evaluate expressions given on the command line.
 
 Below is a simple example in which (in order) cylindrical coordinates
 are selected, the time step, \verb|D_T|, is set, as is the
@@ -1188,7 +1251,7 @@ running the \verb|enumerate| utility; for the next problem we tackle
 we will elaborate on the contents of such a file.  Often we will run
 the utility `by hand' in the following examples.
 
-For post-processing we can prepare an \Tecplot\ input file (which can
+For post-processing we can prepare a \Tecplot\ input file (which can
 also be read by \emph{VisIt} and \emph{Paraview})
 %
 {\small
@@ -3329,11 +3392,11 @@ may want to try altering the parameter \texttt{LVR} in
 
 \begin{figure}
 \begin{center}
-\includegraphics[viewport=72 130 770 492,width=\textwidth,clip=true]
+\includegraphics[width=\textwidth]
 {timeSchemeStorage}
 \end{center}
 \caption{Arrangement of internal storage during timestepping loop (see
-  \texttt{dns/integrate.C}) for a three-velocity-component,
+  \texttt{dns/integrate.cpp}) for a three-velocity-component,
   second-order-time, stepping scheme. Presence of a '-' indicates that
   the relevant storage is free for over-writing if desired.  Diagonal
   lines divide the upper- and lower-order storage so that \eg the
@@ -3401,9 +3464,12 @@ allowing the user to chain operations together in the standard Unix
 workflow model. At present, all utility programs support serial
 operation only.  Below we describe the purpose and use of compiled
 utility programs whose source code resides in the \verb|utility|
-directory (you will also find there a few shell scripts such as
-\verb|addquick|, \verb|rayavg|, \verb|pline|, \verb|restart|,
-\verb|run_job| and \verb|save|, which are not documented below).
+directory.  In this directory you will also find a few shell scripts
+such as \verb|addquick|, \verb|rayavg|, \verb|pline|, \verb|restart|,
+\verb|run_job| and \verb|save|, while some further \emph{python}-based
+utilities are included in the \verb|python| directory\,---\,none of
+these utilities are as yet documented below.
+
 
 %=============================================================================
 \section{\texttt{addfield}}

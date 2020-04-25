@@ -1,12 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////
-// PSplot package introduced in Numerical Recipes 3e Ch. 22, described in
-// webnote 26:
-//   http://www.nr.com/webnotes?26
-//
-// We have replaced Doub by double, Int with int, VecDoub with vector<double>
-// (assuming templated vector library).
-///////////////////////////////////////////////////////////////////////////////
-
+/*****************************************************************************
+ * PSplot package introduced in Numerical Recipes 3e Chapter 22, described in
+ * webnote 26:
+ *   [http://www.numerical.recipes/webnotes?26]
+ *
+ * We have replaced Doub by double, Int with int, VecDoub with vector<double>
+ * (assuming templated vector library).
+ *
+ * @file utility/psplot.h
+ * @ingroup group_utility
+ *****************************************************************************/
 #ifndef PSPLOT_H
 #define PSPLOT_H
 

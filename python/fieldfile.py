@@ -53,7 +53,6 @@ class Header:
         self.fields  = fields
         self.format  = format
 
-
     def read(self, f):
         hdr = []
         for i in range(0,9):
@@ -139,7 +138,6 @@ class Fieldfile:
         data.tofile(self.f)
         if not keep_open:
             self.f.close()
-        
 
     def write_fields(self, fields):
         self.write(np.vstack(the_field.flatten() for the_field in fields))
@@ -150,8 +148,6 @@ class Fieldfile:
     # --------------------------------------------------------------------------
     def read(self):
         "read field data from file. Float64 data expected."
-#        return np.fromfile(self.f, 'd').reshape(self.nflds, self.ntot) # fails with stdin
-        #return np.frombuffer(self.f, 'd', count=-1).reshape(self.nflds, self.ntot)
         buf = self.f.read()
         self.data = np.fromstring(buf, np.float64, count=-1).reshape(self.nflds, self.ntot)
         return self.data

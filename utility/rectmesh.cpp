@@ -1,8 +1,26 @@
-///////////////////////////////////////////////////////////////////////////////
-// rectmesh.cpp: create a session file for a rectangular mesh of elements.
-//
-// Copyright (c) 2000 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
+/*****************************************************************************
+ * rectmesh: utility to create a session file for a rectangular mesh
+ * of elements.
+ *
+ * Usage
+ * -----
+ * rectmesh [-b <num>] [-e <num>] [-v <num>] [file]
+ *   -b <num> ... output in <num> blocks, contiguous in x. [Default: 1]
+ *   -e <num> ... offset first element number by <num>.
+ *   -v <num> ... offset first vertex number by <num>.
+ *
+ * Files
+ * -----
+ * Input consists of a list of x, followed by y, locations of element
+ * boundaries, one per line.  A single blank line separates x from y
+ * locations.  Output consists of a (2D) session file with an element
+ * order of 7, and "wall" group boundaries around the domain border.
+ *
+ * @file utility/rectmesh.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2000 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,23 +37,9 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// Usage:
-// -----
-// rectmesh [-b <num>] [-e <num>] [-v <num>] [file]
-//   -b <num> ... output in <num> blocks, contiguous in x. [Default: 1]
-//   -e <num> ... offset first element number by <num>.
-//   -v <num> ... offset first vertex number by <num>.
-//
-// Files:
-// -----
-// Input consists of a list of x, followed by y, locations of element
-// boundaries, one per line.  A single blank line separates x from y
-// locations.  Output consists of a (2D) session file with an element
-// order of 7, and "wall" group boundaries around the domain border.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: rectmesh.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: rectmesh.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 

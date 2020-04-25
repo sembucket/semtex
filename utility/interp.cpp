@@ -1,43 +1,50 @@
-///////////////////////////////////////////////////////////////////////////////
-// interp.cpp: interpolate results from a field file onto a set of 2D points.
-//
-// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
-// Synopsis:
-// --------
-// interp [-h] [-v] [-q] [-m file] -s session dump
-//
-// Description:
-// -----------
-// Interpolation is 2D and for 3D fields the data will be output in
-// plane-by-plane order.  Output is always ASCII format.  Each line
-// of output contains the values for the fields in the file in columns,
-// in the order they were written to the field file.  The field file
-// must be in binary format.
-//
-// The set of points can either be in the form output from meshpr, e.g.
-// 12 12 4 422 NR NS NZ NEL
-//         1.32461       0.514135
-//         1.31102       0.509459
-//            ..             ..
-// in which case the output data will be in field dump format with header,
-// or the input can be an (unstructured) set without a header, e.g.
-//         1.32461       0.514135
-//         1.31102       0.509459
-//            ..             ..
-// in which case the output has a matching lack of structure.
-//
-// If a point cannot be located in the mesh, zero values are output for
-// that point location.  Points can either be supplied on standard input
-// or in a named file.
-//
-// (From src/element.C:)
-//
-// Point tolerances can be changed by setting token TOL_POS, but
-// usually it's better to increase NR_MAX above its default, since
-// TOL_POS is used both as a location test at end of iteration, and on
-// the N--R forcing term.
-//
+/*****************************************************************************
+ * interp: utility to interpolate results from a field file onto a set
+ * of 2D points.
+ *
+ * Usage
+ * -----
+ * interp [-h] [-v] [-q] [-m file] -s session dump
+ *
+ * Synopsis
+ * --------
+ * This utility is mainly intended for extraction of data from one
+ * mesh onto another, potentially non-conforming mesh.  (This is in
+ * contrast to the purpose of the project utility, which generates
+ * data on the same spectral element mesh but at a different
+ * polynomial order.)
+ *
+ * Interpolation is 2D and for 3D fields the data will be output in
+ * plane-by-plane order.  Output is always ASCII format.  Each line
+ * of output contains the values for the fields in the file in columns,
+ * in the order they were written to the field file.  The field file
+ * must be in binary format.
+ *
+ * The set of points can either be in the form output from meshpr, e.g.
+ * 12 12 4 422 NR NS NZ NEL
+ *         1.32461       0.514135
+ *         1.31102       0.509459
+ *            ..             ..
+ * in which case the output data will be in field dump format with header,
+ * or the input can be an (unstructured) set without a header, e.g.
+ *         1.32461       0.514135
+ *         1.31102       0.509459
+ *            ..             ..
+ * in which case the output has a matching lack of structure.
+ *
+ * If a point cannot be located in the mesh, zero values are output for
+ * that point location.  Points can either be supplied on standard input
+ * or in a named file.
+ *
+ * Notes from src/element.cpp: Point tolerances can be changed by
+ * setting token TOL_POS, but usually it's better to increase NR_MAX
+ * above its default, since TOL_POS is used both as a location test at
+ * end of iteration, and on the N--R forcing term.
+ *
+ * @file utility/interp.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1997 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -57,7 +64,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: interp.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: interp.cpp,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <ctime>
 #include <sem.h>

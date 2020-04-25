@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // analysis.C: implement Analyser class for NS-type solvers.
 //
-// Copyright (c) 1994 <--> $Date: 2019/05/30 07:58:54 $, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2020/02/20 02:44:21 $, Hugh Blackburn
 //
 // This deals with output of runtime information such as step numbers,
 // CFL estimation, modal energies, etc. If set, also output history
@@ -30,7 +30,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: analysis.cpp,v 9.2 2019/05/30 07:58:54 hmb Exp $";
+static char RCS[] = "$Id: analysis.cpp,v 9.3 2020/02/20 02:44:21 hmb Exp $";
 
 #include <sem.h>
 
@@ -437,9 +437,12 @@ void Analyser::estimateCFL () const
 // ---------------------------------------------------------------------------
 // Estimate and print the peak CFL number.
 // References:
-//      SEM:     Karniadakis and Sherwin (2005), section 6.3.1
-//      Fourier: Canuto, Hussaini, Quarteroni and Zhang, vol. 1 (2006), 
-//               appendix D.2.2
+//     SEM:     Karniadakis and Sherwin (2005), section 6.3.1
+//     Fourier: Canuto, Hussaini, Quarteroni and Zhang, vol. 1 (2006), 
+//              appendix D.2.2
+//
+// The calls which zero Nyquist data ensure that velocity fields are
+// always clean in Fourier space.
 // ---------------------------------------------------------------------------
 {
   const int_t           pid     = Geometry::procID();
@@ -448,28 +451,26 @@ void Analyser::estimateCFL () const
   static vector<real_t> maxElmt (nProc);
   static vector<real_t> maxCmpt (nProc);
 
-  const real_t   dt = Femlib::value ("D_T");  
-  real_t         CFL_dt, dt_max;
-  int_t          i, percent;
-  char           vcmpt;
-  real_t         CFL_i[3];
-  real_t         cmpt_i;
-  int_t          elmt_i, elmt_j, elmt_k;
+  const real_t dt = Femlib::value ("D_T");  
+  real_t       CFL_dt, dt_max;
+  int_t        i, percent, elmt_i, elmt_j, elmt_k;
+  char         vcmpt;
+  real_t       CFL_i[3], cmpt_i;
 
-  _src -> u[0] -> transform (INVERSE);
+  _src -> u[0] -> zeroNyquist() . transform (INVERSE);
   CFL_i[0] = _src -> u[0] -> CFL (0, elmt_i);
   _src -> u[0] -> transform (FORWARD);
 
-  _src -> u[1] -> transform (INVERSE);
+  _src -> u[1] -> zeroNyquist() . transform (INVERSE);
   CFL_i[1] = _src -> u[1] -> CFL (1, elmt_j);
   _src -> u[1] -> transform (FORWARD);
-
+  
   CFL_dt = max(CFL_i[0], CFL_i[1]);
   cmpt_i = (CFL_i[0] > CFL_i[1]) ? 0.0 : 1.0;
   elmt_i = (CFL_i[0] > CFL_i[1]) ? elmt_i : elmt_j;
 
   if (_src -> nField() > 3) {
-    _src -> u[2] -> transform (INVERSE);
+    _src -> u[2] -> zeroNyquist() . transform (INVERSE);
     CFL_i[2] = _src -> u[2] -> CFL (2, elmt_k);
     _src -> u[2] -> transform (FORWARD);
 

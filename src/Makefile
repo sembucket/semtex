@@ -1,7 +1,7 @@
 ##############################################################################
 # Makefile for spectral element foundation routines, and shared definitions.
 #
-# $Id: Makefile,v 9.1 2019/05/30 06:36:10 hmb Exp $
+# $Id: Makefile,v 9.3 2020/02/20 02:44:21 hmb Exp $
 ##############################################################################
 
 ifdef DEBUG
@@ -53,7 +53,7 @@ endif
 # Compiler options for specific machines.
 #
 
-ifeq ($(ARCH),Darwin)               # -- Mac OSX, 10.6+ (has openmpi)
+ifeq ($(ARCH),Darwin)               # -- Mac OSX, 10.6+, macports
 CXX      = g++
 LD       = g++
 CC       = gcc
@@ -61,28 +61,20 @@ FC	 = gfortran
 AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
-ifdef DEBUG			# -- gcc is really clang, use -g for debug
-  OPT    = -m64 -O0 -g
+ifdef DEBUG
+  OPT    = -O0 -g
 else
-  OPT    = -m64 -O2
+  OPT    = -O3
 endif
-CFLAGS   = $(DEFINES) $(OPT) -ansi
-# -- Use the next line with fink
-#CPPFLAGS += -I/sw/include
-CXXFLAGS = $(DEFINES) $(OPT) -ansi \
+CFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT)  \
 	-Wno-unused-value -Wno-parentheses -Wno-switch
 FFLAGS   = $(DEFINES) $(OPT)
-# -- Use the next line with fink
-#LIBDIR   += -L/sw/lib -L/sw/lib/gcc7/lib
-# -- Use the next line with homebrew
-#LIBDIR    += -L/usr/local/Cellar/gcc/8.3.0/lib/gcc/8
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-# -- Use the next line with fink
-#  LIBDIR   += -L/sw/lib/openmpi
-# -- Use the next line with macports
+  CPPFLAGS += -I/opt/local/include/openmpi-mp
   LIBDIR   += -L/opt/local/lib/openmpi-mp
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
 else

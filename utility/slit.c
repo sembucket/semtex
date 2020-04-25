@@ -1,11 +1,16 @@
 /******************************************************************************
- * slit.c: reproduce specified columns of input on output.
+ * slit: utility to reproduce specified columns of ASCII input file
+ * on output.
  *
- * Copyright (c) 1990 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
- *
- * Usage: slit [-c <colstr>] [file], where <colstr> is a
+ * Usage
+ * -----
+ * slit [-c <colstr>] [file], where <colstr> is a
  * comma-separated list of column numbers.
  *
+ * @file utility/slit.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1990 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -25,7 +30,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: slit.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: slit.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,31 +1,34 @@
-///////////////////////////////////////////////////////////////////////////////
-// project.cpp:  Project solution files to different interpolation orders.
-//
-// Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
-// SYNOPSIS
-// --------
-// Process sem field file, project to new interpolation order on the
-// same mesh.  Each dump in file is expected to be the same size.
-// Also it is assumed that the field file represents a vector field
-// dump, so that if the input file has N space dimensions, the first N
-// fields represent vector components.  Input file must be binary
-// format.
-//
-// USAGE
-// -----
-// project [options] [file]
-// options:
-// -h       ... print this message.
-// -n <num> ... project elements to num x num.
-// -z <num> ... project to <num> planes in the homogeneous direction.
-// -w       ... Retain w components in 3D-->2D proj'n [Default: delete]
-// -u       ... project elements to uniform internal grid [Default: GLL].
-// -U       ... project from uniform grid to GLL.
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.
-//
+/*****************************************************************************
+ * project: utility to project solution files to different
+ * interpolation orders.
+ *
+ * Usage
+ * -----
+ * project [options] [file]
+ * options:
+ * -h       ... print this message.
+ * -n <num> ... project elements to num x num.
+ * -z <num> ... project to <num> planes in the homogeneous direction.
+ * -w       ... Retain w components in 3D-->2D proj'n [Default: delete]
+ * -u       ... project elements to uniform internal grid [Default: GLL].
+ * -U       ... project from uniform grid to GLL.
+ * 
+ * If file is not present, read from standard input.  Write to
+ * standard output.
+ *
+ * Synopsis
+ * --------
+ * Process sem field file, project to new interpolation order on the
+ * same mesh.  Each dump in file is expected to be the same size.
+ * Also it is assumed that the field file represents a vector field
+ * dump, so that if the input file has N space dimensions, the first N
+ * fields represent vector components.  Input file must be binary
+ * format.
+ *
+ * @file utility/project.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1996 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -45,7 +48,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: project.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: project.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 

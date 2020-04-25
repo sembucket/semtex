@@ -1,70 +1,72 @@
-///////////////////////////////////////////////////////////////////////////////
-// probe.cpp: extract results from a field file at a set of 3D points.
-//
-// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
-// Synopsis
-// --------
-// Probe has three different user interfaces --- the internal
-// mechanics of data extraction are the same in all cases, but the way
-// the points are defined and data are output differ for each interface.
-//
-// Common information
-// ------------------
-// If the x--y values of a point cannot be located in the (2D) mesh,
-// it is ignored, but if the z values falls outside [0, TWOPI/BETA],
-// Fourier interpolation will be applied on assumption of periodicity.
-//
-// The field file must be in binary format, and the value of BETA in the
-// session file will override the value given in the field file header.
-//
-// Interface 1: Extract data at set of points
-// -----------
-//
-// Usage: probe [-h] [-m] [-p file] -s session dump [file]
-//
-// This is the most general form.  Extract data at a specified set
-// of 3D points, given either on standard input or in a named file.
-// Points must have three coordinates, and any number of them can be given,
-// e.g.
-//         1.32461       0.514135      1.00
-//         1.31102       0.509459     -0.25
-//            ..             ..         ..
-//
-// Points can either be supplied on standard input or in a named file.
-//
-// Output is always ASCII format.  Each line of output contains the
-// values for the fields in the file in columns, in the order they
-// were written to the field file.  Using the "-m" option creates
-// minimal output - just the probed field values, separated by spaces,
-// one point per line.  Otherwise, we also get info about index and
-// position.
-//
-// Interface 2: Extract data along a straight line
-// -----------
-//
-// Usage: probeline [-h] -p "[n:]x0,y0,z0,dx,dy,dz" -s session dump
-//
-// Extract data along the straight line defined by the parameters.
-// The number of points extracted is specified as <num>.  Output
-// format is the same as for probe.
-//
-// Interface 3: Extract data at 2D array of points on x-y, x-z or y-z planes
-// -----------
-//
-// Usage: probeplane [-h] [options] -s session dump
-// options:
-// -xy "x0,y0,dx,dy" ... xy-cutting plane
-// -xz "x0,z0,dx,dz" ... xz-cutting plane
-// -yz "y0,z0,dy,dz" ... yz-cutting plane
-// -orig #           ... origin of the cutting plane along orthogonal axis
-// -nx #             ... resolution along the x-axis
-// -ny #             ... resolution along the y-axis
-// -swap             ... swap x <--> y in output file (rotate)
-// -tec              ... write TECPLOT-formatted ASCII output
-// -sm               ... write SM-formatted binary output
-// -0		     ... output zero if point is outside mesh (no warning)
-//
+/*****************************************************************************
+ * probe: utility to extract results from a field file at a set of 3D points.
+ *
+ * Synopsis
+ * --------
+ * Probe has three different user interfaces --- the internal
+ * mechanics of data extraction are the same in all cases, but the way
+ * the points are defined and data are output differ for each interface.
+ *
+ * Common information
+ * ------------------
+ * If the x--y values of a point cannot be located in the (2D) mesh,
+ * it is ignored, but if the z values falls outside [0, TWOPI/BETA],
+ * Fourier interpolation will be applied on assumption of periodicity.
+ *
+ * The field file must be in binary format, and the value of BETA in the
+ * session file will override the value given in the field file header.
+ *
+ * Interface 1: Extract data at set of points
+ * -----------
+ *
+ * Usage: probe [-h] [-m] [-p file] -s session dump [file]
+ *
+ * This is the most general form.  Extract data at a specified set
+ * of 3D points, given either on standard input or in a named file.
+ * Points must have three coordinates, and any number of them can be given,
+ * e.g.
+ *         1.32461       0.514135      1.00
+ *         1.31102       0.509459     -0.25
+ *            ..             ..         ..
+ *
+ * Points can either be supplied on standard input or in a named file.
+ *
+ * Output is always ASCII format.  Each line of output contains the
+ * values for the fields in the file in columns, in the order they
+ * were written to the field file.  Using the "-m" option creates
+ * minimal output - just the probed field values, separated by spaces,
+ * one point per line.  Otherwise, we also get info about index and
+ * position.
+ *
+ * Interface 2: Extract data along a straight line
+ * -----------
+ *
+ * Usage: probeline [-h] -p "[n:]x0,y0,z0,dx,dy,dz" -s session dump
+ *
+ * Extract data along the straight line defined by the parameters.
+ * The number of points extracted is specified as <num>.  Output
+ * format is the same as for probe.
+ *
+ * Interface 3: Extract data at 2D array of points on x-y, x-z or y-z planes
+ * -----------
+ *
+ * Usage: probeplane [-h] [options] -s session dump
+ * options:
+ * -xy "x0,y0,dx,dy" ... xy-cutting plane
+ * -xz "x0,z0,dx,dz" ... xz-cutting plane
+ * -yz "y0,z0,dy,dz" ... yz-cutting plane
+ * -orig #           ... origin of the cutting plane along orthogonal axis
+ * -nx #             ... resolution along the x-axis
+ * -ny #             ... resolution along the y-axis
+ * -swap             ... swap x <--> y in output file (rotate)
+ * -tec              ... write TECPLOT-formatted ASCII output
+ * -sm               ... write SM-formatted binary output
+ * -0		     ... output zero if point is outside mesh (no warning)
+ *
+ * @file utility/probe.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1997 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -84,7 +86,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: probe.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: probe.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 #include <libgen.h>

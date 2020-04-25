@@ -1,10 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////
-// calc.cpp: a basic calculator using the function parser.
-//
-// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
-// Usage: calc [-h] [file]
-//
+/*****************************************************************************
+ * calc: a simple calculator based on the femlib function parser.
+ *
+ * Usage
+ * -----
+ * calc [-h] [file]
+ *
+ * @file utility/calc.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1994 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -24,7 +28,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: calc.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $"; 
+static char RCS[] = "$Id: calc.cpp,v 9.2 2020/01/06 04:35:44 hmb Exp $"; 
 
 #include <cstdio>
 #include <cstdlib>

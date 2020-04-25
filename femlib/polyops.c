@@ -3,7 +3,7 @@
  *
  * All spectral polynomial routines used by semtex are contained in this file.
  *
- * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:06 $, Hugh Blackburn
+ * Copyright (c) 1994 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
  *
  * This file is part of Semtex.
  * 
@@ -21,7 +21,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
  *
  * Summary of routines:
  * --------------------
@@ -42,7 +41,7 @@
  * uniknot : Points uniformly distributed on [-1, 1].
  *
  * Many routines that deal specifically with orthogonal polynomials come from
- * a library of spectral routines written in FORTRAN by Einar Ronquist, MIT.
+ * a library of spectral routines written in Fortran by Einar Ronquist, MIT.
  * Many of the formulae used may be found in Canuto, Hussaini, Quarteroni &
  * Zang, "Spectral Methods in Fluid Dynamics", Springer, 1988.
  * The JACOBF routine comes from Funaro, as that has been verified to work
@@ -50,7 +49,7 @@
  *
  * Everything here is real_t (double) precision.
  *
- * $Id: polyops.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
+ * $Id: polyops.c,v 9.2 2020/01/06 04:35:44 hmb Exp $
  *****************************************************************************/
 
 #include <math.h>

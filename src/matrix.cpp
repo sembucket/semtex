@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
-// matrix.C: routines that generate solvers for Helmholtz problems.
+// matrix.cpp: routines that generate solvers for Helmholtz problems.
 //
-// Copyright (c) 1994 <--> $Date: 2019/06/22 08:43:26 $, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/11/08 07:07:41 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -22,7 +22,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: matrix.cpp,v 9.2 2019/06/22 08:43:26 hmb Exp $";
+static char RCS[] = "$Id: matrix.cpp,v 9.3 2019/11/08 07:07:41 hmb Exp $";
 
 #include <sem.h>
 
@@ -125,6 +125,8 @@ ModalMatrixSys::~ModalMatrixSys ()
     for (p = MS.begin(); p != MS.end(); p++)
       if (*p == _Msys[N]) { delete (_Msys[N]); MS.erase(p); break; }
   }
+
+  delete[] _fields;
 }
 
 

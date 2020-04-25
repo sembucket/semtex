@@ -1,4 +1,10 @@
-/* This is source code freely distributed by AMTEC Inc, suppliers of Tecplot.
+/*****************************************************************************
+ * preplot: utility to convert Tecplot ASCII input file to binary format.
+ *
+ * @file utility/preplot.c
+ * @ingroup group_utility
+ *
+ * This is source code freely distributed by AMTEC Inc, suppliers of Tecplot.
  *
  * NB: it is *NOT* part of Semtex and is covered by different
  * distribution restrictions. Please see the AMTEC website.
@@ -6,7 +12,7 @@
  * This seems to work on most current UNIX implementations.
  *
  * cc preplot.c -DIRIS -o preplot
- */
+ *****************************************************************************/
 
 /* So: */
 

@@ -1,19 +1,36 @@
-//////////////////////////////////////////////////////////////////////////////
-// enumerate.cpp:  utility to generate mesh numbering from session file.
+/*****************************************************************************
+ * enumerate: utility to generate global mesh numbering from session file.
+ *
+ * Usage
+ * -----
+ * enumerate [options] file
+ *   options:
+ *   -h       ... display this message
+ *   -v       ... set verbose output
+ *   -n N     ... override element order to be N
+ *   -O [0-3] ... set level of bandwidth optimization (default is 3)
+ *
+ * Synopsis
+ * --------
+ * Determine, from BCs section of FEML file, list of fields for which
+ * numbering schemes are to be constructed.
+ *
+ * Generate a BC mask and initial numbering scheme for first field,
+ * using Mesh class routines.  Optimize numbering scheme according to
+ * selected level.
+ *
+ * For each succeeding field, first generate a BC mask and, if it
+ * matches a mask previously generated, add the field's name to the
+ * previous field's name vector but take no further action.
+ * Otherwise, generate and optimize a new numbering system.
+ *
+ * Print up the masks and numbering schemes on cout.
+ *
+ * @file utility/enumerate.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
 //
-// Copyright (c) 1995 <--> $Date: 2019/06/22 08:43:26 $, Hugh Blackburn
-//
-// Usage: enumerate [options] file
-//   options:
-//   -h       ... display this message
-//   -v       ... set verbose output
-//   -n N     ... override element order to be N
-//   -O [0-3] ... set level of bandwidth optimization
-//
-// Special action may need to be taken to generate numbering schemes
-// for cylindrical coordinate flow problems.  See the discussion in
-// header for field.cpp, and for routine Mesh::buildMask in mesh.cpp.
-//
+// Copyright (c) 1995 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -33,7 +50,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: enumerate.cpp,v 9.2 2019/06/22 08:43:26 hmb Exp $";
+static char RCS[] = "$Id: enumerate.cpp,v 9.3 2020/01/06 04:35:44 hmb Exp $";
 
 #include <cstdlib>
 #include <cstring>
@@ -103,18 +120,7 @@ static void checkABCs (FEML*, const char);
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
-// Determine, from BCs section of FEML file, list of fields for which
-// numbering schemes are to be constructed.
-//
-// Generate a BC mask and initial numbering scheme for first field, using
-// Mesh class routines.  Optimize numbering scheme according to selected level.
-//
-// For each succeeding field, first generate a BC mask and, if it matches
-// a mask previously generated, add the field's name to the previous field's
-// name vector but take no further action.  Otherwise, generate and optimize
-// a new numbering system.
-//
-// Print up the masks and numbering schemes on cout.
+// See synopsis in file header.
 // ---------------------------------------------------------------------------
 {
   char   *session = 0, field[StrMax], axistag;

@@ -2,9 +2,9 @@
 #define ELEMENT_H
 
 class Element
-// ===========================================================================
-// Virtual 2D quadrilateral element class, equal order in each direction.
-//
+//  ==========================================================================
+/// Virtual 2D quadrilateral element class, equal order in each direction.
+///
 //         s                                y ^     +4
 //         ^                                  |    / \
 //     4   |                                  |  1+   +3
@@ -15,13 +15,14 @@ class Element
 //     +------+                               +-----------> x
 //     1      2
 //
-// Master element coordinates: -1 < r,s < 1; edge traverses CCW.
-//
-// Elements in this class will use Gauss--Lobatto--Legendre
-// meshes, integration, and nodal basis functions.
-//
-// All 2D storage is row-major.
-// ===========================================================================
+/// Master element coordinates: -1 < r,s < 1; edge traverses CCW.
+///
+/// Elements in this class will use Gauss--Lobatto--Legendre
+/// meshes, integration, and nodal basis functions.
+///
+/// All 2D storage is row-major. NB: starting at bottom-left corner of
+/// element and working across and up (instead of across and down).
+//  ==========================================================================
 {
 public:
   Element (const int_t,const int_t,const Mesh*);
@@ -114,44 +115,44 @@ public:
 
 protected:
 
-  const int_t   _id   ;		// Element identifier.
-  const int_t   _np   ;		// Number of points on an edge.
-  const int_t   _npnp ;		// Total number = np * np.
-  const int_t   _next ;		// Number of points on periphery.
-  const int_t   _nint ;		// Number of internal points.
-  const bool    _cyl  ;         // Cylindrical coordinate problem.
+  const int_t   _id   ;		//!<  Element identifier.
+  const int_t   _np   ;		//!<  Number of points on an edge.
+  const int_t   _npnp ;		//!<  Total number = np * np.
+  const int_t   _next ;		//!<  Number of points on periphery.
+  const int_t   _nint ;		//!<  Number of internal points.
+  const bool    _cyl  ;         //!<  Cylindrical coordinate problem.
 
-  const real_t* _zr   ;		// Master element mesh points on [-1, 1], r.
-  const real_t* _zs   ;		// Master element mesh points on [-1, 1], s.
-  const real_t* _wr   ;		// Master element quadrature weights, r.
-  const real_t* _ws   ;		// Master element quadrature weights, s.
-  const real_t* _DVr  ;		// Master element derivative operator, r.
-  const real_t* _DTr  ;		// Transpose.
-  const real_t* _DVs  ;		// Master element derivative operator, s.
-  const real_t* _DTs  ;		// Transpose.
-  const real_t* _SDVr ;		// As above, but with SVV modifications.
+  const real_t* _zr   ;		//!<  Master element mesh points on [-1, 1], r.
+  const real_t* _zs   ;		//!<  Master element mesh points on [-1, 1], s.
+  const real_t* _wr   ;		//!<  Master element quadrature weights, r.
+  const real_t* _ws   ;		//!<  Master element quadrature weights, s.
+  const real_t* _DVr  ;		//!<  Master element derivative operator, r.
+  const real_t* _DTr  ;		//!<  Transpose.
+  const real_t* _DVs  ;		//!<  Master element derivative operator, s.
+  const real_t* _DTs  ;		//!<  Transpose.
+  const real_t* _SDVr ;		//!<  As above, but with SVV modifications.
   const real_t* _SDTr ;
   const real_t* _SDVs ;
   const real_t* _SDTs ;
 
-  int_t*        _emap ;		// Indices of edges in nodal matrices.
-  int_t*        _pmap ;		// Inversion of emap (pmap[emap[i]] = i).
+  int_t*        _emap ;		//!<  Indices of edges in nodal matrices.
+  int_t*        _pmap ;		//!<  Inversion of emap (pmap[emap[i]] = i).
 
-  real_t*       _xmesh;		// Physical space mesh.
-  real_t*       _ymesh;		// 2D row-major store.
+  real_t*       _xmesh;		//!<  Physical space mesh.
+  real_t*       _ymesh;		//!<  2D row-major store.
 
-  real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
-  real_t*       _dsdx ;		//   evaluated at quadrature points.
-  real_t*       _drdy ;		//   (2D row-major storage.)
-  real_t*       _dsdy ;		//
+  real_t*       _drdx ;		//!<  Partial derivatives (r, s) --> (x, y),
+  real_t*       _dsdx ;		//!<    evaluated at quadrature points.
+  real_t*       _drdy ;		//!<    (2D row-major storage.)
+  real_t*       _dsdy ;		//!< 
 
-  real_t*       _delta;		// Local length scale.
+  real_t*       _delta;		//!<  Local length scale.
 
-  real_t*       _Q1   ;		// Geometric factor 1 at quadrature points.
-  real_t*       _Q2   ;		// Geometric factor 2 at quadrature points.
-  real_t*       _Q3   ;		// Geometric factor 3 at quadrature points.
-  real_t*       _Q4   ;		// Geometric factor 4 at quadrature points.
-  real_t*       _Q8   ;	        // Like _Q4 but without possible factor of y.
+  real_t*       _Q1   ;		//!<  Geometric factor 1 at quadrature points.
+  real_t*       _Q2   ;		//!<  Geometric factor 2 at quadrature points.
+  real_t*       _Q3   ;		//!<  Geometric factor 3 at quadrature points.
+  real_t*       _Q4   ;		//!<  Geometric factor 4 at quadrature points.
+  real_t*       _Q8   ;	        //!<  Like _Q4 but without possible factor of y.
 
   // -- Geometric and quadrature-specific internal functions.
 

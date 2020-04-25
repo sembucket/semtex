@@ -1,11 +1,13 @@
 /*****************************************************************************
- * chop: read an input file and reproduce a specified number of lines on
- * standard output.
+ * chop: utility to read an ASCII Input file and reproduce a
+ * specified number of lines on standard output.
  * 
- * Copyright (c) 1990 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
+ * Usage
+ * -----
+ * chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
  *
- * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
- *
+ * Synopsis
+ * --------
  * The first two command line arguments specify the first line of the input
  * file to reproduce, and the number of subsequent lines.  The third argument
  * gives a skip between lines of output that are reproduced.
@@ -14,6 +16,10 @@
  * If number of lines not specified, read through until EOF.
  * Lines are assumed to be BUFSIZ characters long at most.
  *
+ * @file utility/chop.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1990 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -33,7 +39,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id: chop.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: chop.c,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

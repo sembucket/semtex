@@ -1,11 +1,8 @@
 /*****************************************************************************
- * moden.c: from a 3D data file, compute 2D distribution of kinetic
- * energy in named mode, output 2D data file.  Field must be binary
- * format.  By default, output energy in mode 0.
+ * moden: utility to compute distribution of kinetic energy in a
+ * Fourier mode.
  *
- * Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
- *
- * USAGE
+ * Usage
  * -----
  * moden [-h] [-m <mode>] [-z] [input[.fld]
  *
@@ -13,6 +10,16 @@
  * -z forces mode zero to be dealt with as complex 
  *    (to be used e.g. with a complex eigenmode).  In which case N_Z=2.
  *
+ * Synopsis
+ * --------
+ * From a 3D data file, compute 2D distribution of kinetic energy in
+ * named mode, output 2D data file.  Field must be binary format.  By
+ * default, output energy in mode 0.
+ *
+ * @file utility/moden.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1999 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -32,7 +39,7 @@
  * 02110-1301 USA.
  *****************************************************************************/
 
-static char RCS[] = "$Id: moden.c,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: moden.c,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

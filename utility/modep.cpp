@@ -1,30 +1,34 @@
-///////////////////////////////////////////////////////////////////////////////
-// modep.cpp: project velocity data in a nominated Fourier mode onto a
-// spatial mode shape supplied in a file, return scalar value of integral.
-//
-// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:12 $, Hugh Blackburn
-//
-// USAGE
-// -----
-// modep [options] -m shapefile session [file]
-// options:
-// -h         ... print this message.
-// -f         ... input file is already in Fourier-transformed state.
-// -n <num>   ... Fourier mode number (starts at 0, default value 1).
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.  All IO assumes binary field files.
-//
-// If mode number = 0, then the mode shape must be real, planar, and
-// have a number of components matching the number of velocity
-// components in the input field file.  For mode numbers 1 or greater,
-// the requirements are the same but there should be two data planes
-// in the mode shape for each velocity component, i.e. the shape is of
-// a 2D complex velocity mode.  The number of velocity components to
-// be dealt with corresponds to the number supplied in the shapefile
-// ("uv" or "uvw"), and it is assumed that the ordering of the first
-// few data fields of the input file matches.
-//
+/*****************************************************************************
+ * modep: utility to project velocity data in a nominated Fourier mode onto a
+ * mode shape supplied in a file, return scalar value of integral.
+ *
+ * Usage
+ * -----
+ * modep [options] -m shapefile session [file]
+ * options:
+ * -h         ... print this message.
+ * -f         ... input file is already in Fourier-transformed state.
+ * -n <num>   ... Fourier mode number (starts at 0, default value 1).
+ * 
+ * If file is not present, read from standard input.  Write to
+ * standard output.  All IO assumes binary field files.
+ *
+ * Synopsis
+ * --------
+ * If mode number = 0, then the mode shape must be real, planar, and
+ * have a number of components matching the number of velocity
+ * components in the input field file.  For mode numbers 1 or greater,
+ * the requirements are the same but there should be two data planes
+ * in the mode shape for each velocity component, i.e. the shape is of
+ * a 2D complex velocity mode.  The number of velocity components to
+ * be dealt with corresponds to the number supplied in the shapefile
+ * ("uv" or "uvw"), and it is assumed that the ordering of the first
+ * few data fields of the input file matches.
+ *
+ * @file utility/modep.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1999 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -44,7 +48,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: modep.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: modep.cpp,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <sem.h>
 

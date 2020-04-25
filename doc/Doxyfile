@@ -1,0 +1,23 @@
+PROJECT_NAME           = "Semtex"
+PROJECT_NUMBER         = 9.x
+PROJECT_BRIEF          = "A spectral element-Fourier DNS code"
+EXTRACT_ALL            = YES
+INPUT                  = ./semtex.dox \
+		         ../README.md \
+                         ../utility \
+			 ../src \
+			 ../dns \
+			 ../femlib \
+			 ../veclib
+EXCLUDE                = ../femlib/tests			 
+RECURSIVE              = YES
+DISABLE_INDEX          = YES
+GENERATE_TREEVIEW      = YES
+JAVADOC_AUTOBRIEF      = YES
+JAVADOC_BANNER         = YES
+SOURCE_BROWSER         = YES
+STRIP_CODE_COMMENTS    = NO
+HAVE_DOT               = NO
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = ..
+USE_MDFILE_AS_MAINPAGE = ../README.md

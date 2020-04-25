@@ -1,0 +1,16 @@
+/**
+ * @defgroup group_main Semtex Modules
+ * @brief All Project Modules
+ *
+ * @{
+ */
+
+ /** @defgroup group_dns      DNS executable      */
+ /** @defgroup group_elliptic Elliptic executable */
+ /** @defgroup group_utility  Utility programs    */
+ /** @defgroup veclib_math    Veclib library      */
+ /** @defgroup femlib_math    Femlib library      */
+
+/** @} */
+
+ 

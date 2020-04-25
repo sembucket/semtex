@@ -4,15 +4,30 @@
 static const int PERTURB_UNSET = -1;
 
 class AuxField
-// ===========================================================================
-// Physical field storage class, no BCs.
-//
-// An AuxField has a storage area for data, physical space mesh, and a
-// matching list of elements which can access this storage area on an
-// element-wise basis if required.  Functions to operate on fields as
-// a whole are provided.  AuxFields have no boundary conditions, no
-// global numbering system, and no solution routines.
-// ===========================================================================
+//  ==========================================================================
+/// Physical field storage class, no BCs.
+///
+/// An AuxField has a storage area for data, physical space mesh, and a
+/// matching list of elements which can access this storage area on an
+/// element-wise basis if required.  Functions to operate on fields as
+/// a whole are provided.  AuxFields have no boundary conditions, no
+/// global numbering system, and no solution routines.
+///
+/// For 2D problems, the data storage is organized by 2D Elements.
+///
+/// For 3D problems, Fourier expansions are used in the 3rd direction,
+/// and each Fourier mode can be thought of as a separate 2D problem
+/// (with real and imaginary parts, or planes, of 2D data).  The data
+/// are then organized plane-by-plane, with each plane being a 2D
+/// AuxField; if in physical space there are nz planes of data, then
+/// there are nz/2 Fourier modes.  Data for the Nyquist mode are stored
+/// as the imaginary part of the zeroth Fourier mode, but are kept zero
+/// and never evolve.  The planes always point to the same storage
+/// locations within the data area.
+///
+/// The data are transformed to physical space for storage in restart
+/// files.
+//  ==========================================================================
 {
 friend istream& operator >> (istream&, AuxField&);
 friend ostream& operator << (ostream&, AuxField&);
@@ -106,12 +121,12 @@ public:
 
 protected:
 
-  char              _name ;	// Identification tag.  '\0' by default.
-  vector<Element*>& _elmt ;	// Quadrilateral elements.
-  int_t             _nz   ;	// number of data planes (per process).
-  int_t             _size ;	// _nz * Geometry::planeSize().
-  real_t*           _data ;	// 2/3D data area, element x element x plane.
-  real_t**          _plane;	// Pointer into data for each 2D frame.
+  char              _name ;	//!< Identification tag.  '\0' by default.
+  vector<Element*>& _elmt ;	//!< Quadrilateral elements.
+  int_t             _nz   ;	//!< Number of data planes (per process).
+  int_t             _size ;	//!< _nz * Geometry::planeSize().
+  real_t*           _data ;	//!< 2/3D data area, element x element x plane.
+  real_t**          _plane;	//!< Pointer into data for each 2D frame.
 
 private:
 

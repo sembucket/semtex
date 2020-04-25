@@ -1,8 +1,24 @@
-///////////////////////////////////////////////////////////////////////////////
-// sem2nek.cpp: read a semtex input file, print a NEKTON-style input file.
-//
-// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:12 $,  Hugh Blackburn
-//
+/*****************************************************************************
+ * sem2nek: utility to read a semtex input file, print a NEKTON-style
+ * input (.rea) file.
+ *
+ * Usage
+ * -----
+ * sem2nek [options] session
+ *   options:
+ *   -h       ... print usage prompt
+ *
+ * Files
+ * -----
+ * The GROUPS BCS NODES ELEMENTS blocks of a semtex input file are required,
+ * the others need not be set.  Output concentrates on mesh & BC descriptions,
+ * other sections may need to be edited by hand.
+ *
+ * @file utility/sem2nek.cpp
+ * @ingroup group_utility
+ * **************************************************************************/
+// Copyright (c) 1997 <--> $Date: 2020/01/06 04:35:45 $,  Hugh Blackburn
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,23 +35,10 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// Usage:
-// -----
-// sem2nek [options] session
-//   options:
-//   -h       ... print usage prompt
-//
-// Files:
-// -----
-// The GROUPS BCS NODES ELEMENTS blocks of a semtex input file are required,
-// the others need not be set.  Output concentrates on mesh & BC descriptions,
-// other sections may need to be edited by hand.
-//
-// $Id: sem2nek.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $
+// $Id: sem2nek.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: sem2nek.cpp,v 9.1 2019/05/30 06:36:12 hmb Exp $";
+static char RCS[] = "$Id: sem2nek.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <cstdlib>
 #include <iomanip>

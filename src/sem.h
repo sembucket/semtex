@@ -3,29 +3,27 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Sem.h: main header file for semtex spectral element solvers.
 //
-// Copyright (c) 1994<-->$Date: 2019/05/30 06:36:11 $, Hugh Blackburn
+// Copyright (c) 1994<-->$Date: 2019/11/08 07:07:41 $, Hugh Blackburn
 //
 // Conventions: 
 // 1. Arrays are 0-offset.
 // 2. Internal ident numbers id/ID start at 0.
 // 3. Class private variable names start with _.
 //
-// $Id: sem.h,v 9.1 2019/05/30 06:36:11 hmb Exp $
+// $Id: sem.h,v 9.2 2019/11/08 07:07:41 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cstdarg>		/* System C(++) headers.  */
-#include <cstdlib>
+#include <cstdlib>		/* System C(++) headers.  */
 #include <cstdio>
 #include <cmath>
+#include <cstdarg>
 #include <cctype>
 #include <cstring>
 #include <climits>
 #include <cfloat>
 #include <cassert>
 #include <ctime>
-
-#include <fenv.h>		/* Std C floating-point error handling. */
-
+#include <fenv.h>
 
 #include <iostream>		/* System C++ headers. */
 #include <fstream>
