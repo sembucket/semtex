@@ -6,7 +6,6 @@
 name: Sync upstream Gitlab
 
 on:
-  push:
   pull_request:
     branches:
       - master
