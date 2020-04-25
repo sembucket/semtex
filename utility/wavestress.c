@@ -1,21 +1,18 @@
 /*****************************************************************************
- * wavestress.c: from a 2D3C but complex modal data file, compute 2D3C
- * distributions of streamwise-averaged Reynolds stresses.  Input data
- * must be binary format and contain only fields u v w p.
+ * wavestress: from a 2D3C but complex modal data file, compute 2D3C
+ * distributions of streamwise-averaged Reynolds stresses.
  *
- * NB this version does not symmetrise the Fourier-direction stress.
- *
- * Copyright (c) 2011 <--> $Date$, Hugh Blackburn
- *
- * USAGE
+ * Usage
  * -----
  * wavestress [-h] [input[.fld]]
  *
- * INPUT FILE
+ * Input file
  * ----------
- * Contains only fields uvwp and has N_Z = 2 (Real and Imaginary parts).
+ * Contains only fields uvwp and has N_Z = 2 (Real and Imaginary
+ * parts).  Input data must be binary format and contain only fields u
+ * v w p.
  *
- * OUTPUT FILE
+ * Output file
  * -----------
  * Is a standard 2D/real (N_Z = 1) Reynolds stress file containing
  * uvwpABCDEF, with
@@ -31,9 +28,32 @@
  * E = 2*(v.Re*w.Re + v.Im*w.Im)
  * F = 2*(w.Re^2    + w.Im^2)
  *
+ * NB this version does not symmetrise the Fourier-direction stress.
+ *
+ * @file utility/wavestress.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 2011 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
+ * --
+ * This file is part of Semtex.
+ * 
+ * Semtex is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ * 
+ * Semtex is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Semtex (see the file COPYING); if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: wavestress.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

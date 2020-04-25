@@ -1,12 +1,16 @@
 /*****************************************************************************
- * sem2vtk: convert a SEM field file to VTK format.
+ * sem2vtk: utility to convert a semtex field file to VTK format.
  *
- * Usage:
+ * Usage
+ * -----
  * sem2vtk [-h] [-c] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
- * Based on code sem2tec by Ron Henderson.
- * Modified by Stefan Schmidt, Chris Cantwell and Thomas Albrecht.
  *
+ * @file utility/sem2vtk.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Based on code sem2tec by Ron Henderson.
+ * Modified by Stefan Schmidt, Chris Cantwell and Thomas Albrecht.
  * --
  * This file is part of Semtex.
  * 
@@ -26,7 +30,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: sem2vtk.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,8 +48,8 @@ static char usage[] =
   "usage: sem2vtk [options] session[.fld]\n"
   "options:\n"
   "-h       ... print this message\n"
-  "-o file  ... write output to the named file instead of running preplot\n"
-  "-c       ... if nz > 1, generate cylindrical output\n"
+  "-o file  ... write output to the named file\n"
+  "-c       ... if nz > 1, perform Cylindrical to Cartesian mesh transformation\n"
   "-m file  ... read the mesh from the named file (instead of stdin)\n"
   "-d <num> ... extract dump <num> from file\n"
   "-n <num> ... evaluate the solution on an evenly-spaced mesh with N X N\n"
@@ -58,7 +62,7 @@ static FILE    *fp_fld = 0,          /* default input files */
 static char    *vtkfile;             /* output file name */
 
 static int     nr, ns, nz, nel, nfields;
-static int     nzp = 0, preplot_it = 1, np = 1, dump = 1, cylindrical=0;
+static int     nzp = 0, np = 1, dump = 1, cylindrical=0;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
@@ -99,17 +103,12 @@ int main (int    argc,
   wrap        ();
   write_vtk   (fp);
 
-  if (preplot_it) {
-    sprintf (buf, "preplot %s %s > /dev/null", fname, vtkfile);
-    system  (buf);
-    remove  (fname);
-  } else {
     rewind (fp);
     fp_tec = fopen (vtkfile, "w");
     while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
     fclose (fp_tec);
     fclose (fp);
-  }
+    remove  (fname);
 
   return EXIT_SUCCESS;
 }
@@ -143,7 +142,6 @@ static void parse_args (int    argc,
 	vtkfile = (char*) malloc(STR_MAX);
 	strcpy(vtkfile, *++argv);
 	argv[0] += strlen(*argv)-1; argc--;
-	preplot_it = 0;
 	break;
       case 'd':
 	if (*++argv[0])
@@ -196,7 +194,7 @@ static void parse_args (int    argc,
     vtkfile = (char*) calloc (STR_MAX, sizeof(int));
     if   (strcmp(*argv + len-4, ".fld") == 0) strncpy(vtkfile, *argv, len-4);
     else                                      strcpy (vtkfile, *argv);
-    strcat (vtkfile, ".plt");
+    strcat (vtkfile, ".vtk");
   }
 }
 
@@ -458,7 +456,7 @@ static void write_vtk (FILE *fp)
 
 	/* write out x,y coordinate, adjusting if cylindrical coords */
 
-	if (cylindrical)
+	if (cylindrical && nzp >1)
 	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i],
 		  y[k*nrns + i] * sin(z[m%nzp]));
 	else

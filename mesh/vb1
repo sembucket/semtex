@@ -1,4 +1,4 @@
-# 15 element driven cavity flow.
+# 15 element driven cavity flow.  2D/3C.
 
 <FIELDS>
 	u v w p
@@ -6,16 +6,16 @@
 
 <TOKENS>
 	CYLINDRICAL = 1
-	N_Z         = 2
+	N_Z         = 1
 	BETA        = 1.0
 	N_TIME      = 2
-	N_P      = 11
+	N_P         = 11
 	N_STEP      = 100000
 	D_T         = 0.01
-	KINVIS      = 0.000472
+	Re          = 2119
+	KINVIS      = 1/Re
 	OMEGA       = 1.0
 	TOL_REL     = 1e-12
-	TOL_ABS     = TOL_REL
 </TOKENS>
 
 <GROUPS NUMBER=3>

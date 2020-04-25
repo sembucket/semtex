@@ -3,7 +3,6 @@
 	Re_D        = 10000
 	Re_t        = 0.099436*Re_D^0.875
 	KINVIS      = 1/Re_D
-	FFX         = (4*Re_t/Re_D)^2
 	D_T         = 0.00075
 	N_STEP      = 20000
 	N_TIME      = 2
@@ -18,6 +17,10 @@
 	CHKPOINT    = 1
 	ITERATIVE   = 1
 </TOKENS>
+
+<FORCE>
+	CONST_X = (4*Re_t/Re_D)^2
+</FORCE>
 
 <FIELDS>
 	u	v	w	p

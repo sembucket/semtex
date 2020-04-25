@@ -1,37 +1,40 @@
-///////////////////////////////////////////////////////////////////////////////
-// compare.cpp
-//
-// Copyright (c) 1996 <--> $Date$, Hugh Blackburn
-//
-// SYNOPSIS
-// --------
-// Compute exact solution given in USER section of FEML file, subtract
-// numerical solution (if present), print up infinity norm (largest
-// error) and write field file of error field.  If no numerical
-// solution is given, output is exact solution.  Only designed for
-// serial execution.  When evaluating the exact solution, use the time
-// value found in the field file.
-//
-// USAGE
-// -----
-// compare [options] session [field.file]
-// options:
-// -h ... print this message
-// -n ... print "noise" if result is less than noise level
-// -f ... forward Fourier transform output
-//
-// EXAMPLE
-// -------
-// Kovasznay flow in x--y plane.
-// For a 3D solution, the USER section would read:
-//
-// <USER>
-//   u = 1-exp(LAMBDA*x)*cos(2*PI*y)
-//   v = LAMBDA/(2*PI)*exp(LAMBDA*x)*sin(2*PI*y)
-//   w = 0.0
-//   p = (1.0-exp(lambda*x))/2.0
-// </USER>
-//
+/*****************************************************************************
+ * compare: utility to generate field file from USER section of a session
+ * file, optionally subtract from another file.
+ *
+ * Usage
+ * -----
+ * compare [options] session [field.file]
+ * options:
+ * -h ... print this message
+ * -n ... print "noise" if result is less than noise level
+ * -f ... forward Fourier transform output
+ *
+ * Synopsis
+ * --------
+ * Compute exact solution given in USER section of FEML file, subtract
+ * numerical solution (if present), print up infinity norm (largest
+ * error) and write field file of error field.  If no numerical
+ * solution is given, output is exact solution.  Only designed for
+ * serial execution.  When evaluating the exact solution, use the time
+ * value found in the field file.
+ *
+ * Example
+ * -------
+ * Kovasznay flow in x--y plane.
+ * For a 3D solution, the USER section would read:
+ *
+ * <USER>
+ *   u = 1-exp(LAMBDA*x)*cos(2*PI*y)
+ *   v = LAMBDA/(2*PI)*exp(LAMBDA*x)*sin(2*PI*y)
+ *   w = 0.0
+ *   p = (1.0-exp(lambda*x))/2.0
+ * </USER>
+ *
+ * @file utility/compare.cpp
+ * @ingroup group_utility
+ ****************************************************************************/
+// Copyright (c) 1996 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -51,7 +54,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: compare.cpp,v 9.2 2020/01/06 04:35:44 hmb Exp $";
 
 #include <ctime>
 #include <sem.h>
@@ -226,7 +229,7 @@ int main (int    argc,
       t = exact -> norm_inf();
 
       cerr.setf (ios::scientific, ios::floatfield);
-      cerr << setprecision (4);
+      cerr << setprecision (3);	 // -- Low: error-tolerant, high enough too.
       cerr << "Field '" << fields[i] << "': norm_inf: ";
       if   (t < NOISE && noise ) cerr << "noise-level" << endl;
       else                       cerr << t             << endl;

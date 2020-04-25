@@ -15,7 +15,7 @@
 // 2,3,5 for the Temperton GPFA FFT routine.
 
 //
-// $Id$
+// $Id: testFFT.C,v 9.1 2019/05/30 06:36:07 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

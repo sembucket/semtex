@@ -1,20 +1,23 @@
-///////////////////////////////////////////////////////////////////////////////
-// transform.cpp: carry out Fourier and/or 2D polynomial transform of data.
-//
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
-//
-// USAGE
-// -----
-// transform [options] [file]
-// options:
-// -h       ... print this message.
-// -i       ... invert transform.
-// -l       ... polynomial transform is Legendre       [Default: modal]
-// -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.
-//
+/*****************************************************************************
+ * transform: utility to carry out Fourier and/or 2D polynomial
+ * transform of data.
+ *
+ * Usage
+ * -----
+ * transform [options] [file]
+ * options:
+ * -h       ... print this message.
+ * -i       ... invert transform.
+ * -l       ... polynomial transform is Legendre       [Default: modal]
+ * -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
+ * 
+ * If file is not present, read from standard input.  Write to
+ * standard output.
+ *
+ * @file utility/transform.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1999 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -34,7 +37,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: transform.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

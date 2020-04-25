@@ -1,7 +1,3 @@
-#include <sem.h>
-#include <fieldforce.h>
-#include <feml.h>
-
 //////////////////////////////////////////////////////////////////////////////
 // This code was originally contributed by Thomas Albrecht.
 //
@@ -22,11 +18,37 @@
 // There are actually two storages, one for physical, and one for
 // Fourier space.  A specific forcing subclass implements whichever
 // suits best.
+//
+// Copyright (c) 2016 <--> $Date: 2019/06/24 10:42:20 $,
+//                         Thomas Albrecht, Hugh Blackburn
+//
+// --
+// This file is part of Semtex.
+//
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+//
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: fieldforce.cpp,v 9.3 2019/06/24 10:42:20 hmb Exp $";
 
-static int_t NCOM;
+#include <sem.h>
+#include <fieldforce.h>
+#include <feml.h>
+
+static int_t NCOM; // -- Number of velocity components.
+
 
 FieldForce::FieldForce (Domain* D   ,
                         FEML*   file)
@@ -42,17 +64,17 @@ FieldForce::FieldForce (Domain* D   ,
   const char  routine[] = "FieldForce::FieldForce";
   const int_t nTotP     = Geometry::nTotProc();
   const int_t nzP       = Geometry::nZProc();
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
   char        s[StrMax];
-  const       int_t verbose = Femlib::ivalue ("VERBOSE");
   int_t       i;
-  
-  NCOM = D -> nField() - 1;	// -- Number of velocity components.
 
   _D = D;
+  
+  NCOM = _D -> nVelCmpt();
 
   // -- Check for FORCE section.
 
-  if (!file -> seek (secForce)) {
+  if (!file -> seek ("FORCE")) {
     VERBOSE cout << "FORCE section not found. Disabling forcing." << endl;
     _enabled = false;
     return;
@@ -60,49 +82,62 @@ FieldForce::FieldForce (Domain* D   ,
   _enabled = true;
 
   // -- init classes
-  //    NB: Sponge must be first in list.
+  //    NB: Sponge must be first in list.  See applicator later in file.
 
-  _classes.push_back(new SpongeForce         (_D, file));
-  _classes.push_back(new CoriolisForce       (_D, file));
-  _classes.push_back(new ConstForce          (_D, file));
-  _classes.push_back(new WhiteNoiseForce     (_D, file));
-  _classes.push_back(new SteadyForce         (_D, file));
-  _classes.push_back(new ModulatedForce      (_D, file));
-  _classes.push_back(new SpatioTemporalForce (_D, file));
-  _classes.push_back(new DragForce           (_D, file));
-  _classes.push_back(new SFDForce            (_D, file));
+  _classes.push_back (new SpongeForce         (_D, file));
+  _classes.push_back (new CoriolisForce       (_D, file));
+  _classes.push_back (new ConstForce          (_D, file));
+  _classes.push_back (new WhiteNoiseForce     (_D, file));
+  _classes.push_back (new SteadyForce         (_D, file));
+  _classes.push_back (new ModulatedForce      (_D, file));
+  _classes.push_back (new SpatioTemporalForce (_D, file));
+  _classes.push_back (new DragForce           (_D, file));
+  _classes.push_back (new SFDForce            (_D, file));
+  _classes.push_back (new BuoyancyForce       (_D, file));
 }
 
 
 void FieldForce::addPhysical (AuxField*         Ni ,
-                              AuxField*         wrk,
+                              AuxField*         buf,
                               const int         com,
                               vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
-// When called from nonlinear() to apply forcing, each subclass'
-// update method is called subsequently to sum up the force, which is
-// then applied to the nonlinear term.
+// When called from nonlinear() to apply forcing, each subclass's
+// update method is called to sum up its contribution to the force,
+// which is then added to the nonlinear component term Ni.
 //
-// Input value com is the velocity component index: 0 <==> u; 1 <==>
-// v; 2 <==> w. Routine is called component-by-component. 
+// Input value com is the directional component index: 0 <==> u; 1 <==>
+// v; 2 <==> w. Routine is called component-by-component.
+//
+// Input buf is used by each subclass as a summation buffer for
+// the forcing component.
+//
+// U contains NADV advected fields (here, supplied in physical space).
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "FieldForce::computePhysical";
+  const char routine[] = "FieldForce::addPhysical";
 
   if (!_enabled) return;
 
-  // -- clear workspace.
-  //    FIXME: should not be neccessary since SpongeForce overwrites
-  //           check here if sponge is enabled
+  // -- Clear summation buffer.
 
-  *wrk = 0.;
+  *buf = 0.0;
 
+  // -- Loop through all the subclasses and make physical space
+  //    additions.  Note that these get successively added into buf.
+  
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
-    (*p) -> physical (wrk, com, U);
+    (*p) -> physical (buf, com, U);
 
-  if (Geometry::cylindrical() && (com <  2)) wrk -> mulY ();
-  *Ni += *wrk;
+
+  // -- Just as for the nonlinear terms themselves, have to multiply
+  //    the axial and radial components by radius if in cylindrical
+  //    space.  This requires us to call addPhysical() after the
+  //    nonlinear terms have been created and likewise multiplied.
+  
+  if (Geometry::cylindrical() && (com < 2)) buf -> mulY ();
+  *Ni += *buf;
 
 #if 0
   if (com == NCOM - 1) dump();
@@ -111,26 +146,25 @@ void FieldForce::addPhysical (AuxField*         Ni ,
 
 
 void FieldForce::addFourier (AuxField*         Ni ,
-                             AuxField*         wrk,
+                             AuxField*         buf,
                              const int         com,
                              vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
-// As above, Fourier space.
+// As above, Fourier space.  It's possible we could do away with this
+// method and just deal with everything in physical space.  EXCEPT
+// that whiteNoiseForce allows one to specify a Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "FieldForce::addFourier";
-  const int_t NCOM      = _D -> nField() - 1;	// -- Number of vel. components
-
   if (!_enabled) return;
 
-  *wrk = 0.;
+  *buf = 0.0;
 
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
-    (*p) -> fourier(wrk, com, U);
+    (*p) -> fourier(buf, com, U);
 
-  if (Geometry::cylindrical() && (com <  2)) wrk -> mulY ();
-  *Ni += *wrk;
+  if (Geometry::cylindrical() && (com <  2)) buf -> mulY ();
+  *Ni += *buf;
 
 #if 0
   if (com == NCOM - 1) dump();
@@ -151,7 +185,7 @@ void FieldForce::writeAux (vector<AuxField *> N)
 
   if (!(periodic || final)) return;
 
-  for (int i = 0; i < NCOM; i++) N[i]->setName ( forcename + i );
+  for (int i = 0; i < NCOM; i++) N[i]->setName ( 'u' + i );
   ofstream output;
   sprintf(s, "%s.f.%03i.chk", _D->name, _D->step);
   ROOTONLY output.open (s, ios::out);
@@ -203,12 +237,11 @@ void FieldForce::dump()
 // ---------------------------------------------------------------------------
 
 
-AuxField* VirtualForce::allocAuxField (Domain *D   ,
-				       char    type)
+AuxField* VirtualForce::allocAuxField (Domain *D         ,
+				       char    type = '0')
 {
-  const char  routine[] = "VirtualForce::allocAuxField";
-  const int_t nTotP     = Geometry::nTotProc();
-  const int_t nzP       = Geometry::nZProc();
+  const int_t nTotP = Geometry::nTotProc();
+  const int_t nzP   = Geometry::nZProc();
 
   return new AuxField (new real_t [(size_t)nTotP], nzP, D->elmt, type);
 }
@@ -223,14 +256,14 @@ void VirtualForce::readSteadyFromFile(char*             fname,
   const char routine[] = "VirtualForce::readSteadyFromFile";
   ifstream   input;
 
-  input.open(fname);
+  input.open (fname);
   if (!input) {
     char s[StrMax];
-    sprintf(s, "can't open '%s' file", fname);
+    sprintf (s, "can't open '%s' file", fname);
     message (routine, s, ERROR);
   }
-  readField(input, a);
-  input.close();
+  readField (input, a);
+  input.close ();
 }
 
 
@@ -243,24 +276,25 @@ ConstForce::ConstForce (Domain* D   ,
 			FEML*   file)
 // ---------------------------------------------------------------------------
 // Constructor.  A force constant in both space in time, applied in
-// Fourier space.
+// Fourier space.  (These replace tokens FFX, FFY, FFZ.)
 // ---------------------------------------------------------------------------
 {
-  const char  routine[]          = "ConstForce::ConstForce";
-  const int_t verbose            = Femlib::ivalue ("VERBOSE");
-  const char  tok[3][StrMax]     = {"CONST_X", 
-				    "CONST_Y", 
-				    "CONST_Z"};
-  const char  tok_old[3][StrMax] = {"FFX", 
-				    "FFY", 
-				    "FFZ"};
+  const char  routine[] = "ConstForce::ConstForce";
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  const char* tok[]     = {"CONST_X", "CONST_Y", "CONST_Z"};
+  int_t       i;
+
+  VERBOSE cout << "  " << routine << endl;
+
+  _enabled = false;
   _D = D;
 
-  for (int i = 0; i < NCOM; i++) {
+  for (i = 0; i < NCOM; i++) {
     _v[i] = 0.;	// -- default
-    if (file -> valueFromSection (&_v[i], secForce, tok[i])) {
-      VERBOSE cout << "    " << tok[i]     << " = " << _v[i] << endl;
-    } 
+    if (file -> valueFromSection (&_v[i], "FORCE", tok[i])) {
+      _enabled = true;
+      VERBOSE cout << "    " << tok[i] << " = " << _v[i] << endl;
+    }
   }
 }
 
@@ -269,9 +303,10 @@ void ConstForce::fourier (AuxField*         ff ,
 			  const int         com,
 			  vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
-// Applicator.
+// Applicator.  Forcing can be done in Fourier space since it's constant.
 // ---------------------------------------------------------------------------
 {
+  if (!_enabled) return;
   ROOTONLY if (fabs (_v[com]) > EPSDP) ff -> addToPlane (0, _v[com]);
 }
 
@@ -280,20 +315,16 @@ SteadyForce::SteadyForce (Domain* D   ,
 			  FEML*   file)
 // ---------------------------------------------------------------------------
 // Constructor.  A steady, spatially varying force, computed during
-// pre-processing.  Applied in physical space.
+// pre-processing.  To be applied in physical space.
 // ---------------------------------------------------------------------------
 {
   const char  routine[] = "SteadyForce::SteadyForce";
   const int_t nTotP     = Geometry::nTotProc();
   const int_t nzP       = Geometry::nZProc();
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
-
-  const char tok[3][StrMax] = {"STEADY_X", 
-			       "STEADY_Y", 
-			       "STEADY_Z"};
-  const char tok_file[]     =  "STEADY_FILE";
-  char       fname[StrMax];
-  int        i;
+  const char* tok[]     = {"STEADY_X", "STEADY_Y", "STEADY_Z"};
+  char        fname[StrMax];
+  int_t       i;
 
   VERBOSE cout << "  " << routine << endl;
   _enabled = false;
@@ -303,24 +334,22 @@ SteadyForce::SteadyForce (Domain* D   ,
 
   // -- If given a filename, read steady force from file.
 
-  if (file -> valueFromSection (fname, secForce, tok_file)) {
+  if (file -> valueFromSection (fname, "FORCE", "STEADY_FILE")) {
     _enabled = true;
-    for (i = 0; i < NCOM; i++) _a[i]  = allocAuxField(D, forcename + i);
+    for (i = 0; i < NCOM; i++) _a[i]  = allocAuxField(D, 'u' + i);
     VERBOSE cout << "    reading file " << fname << endl;
-    readSteadyFromFile(fname, _a);
-  }
-  // -- Otherwise, try to read force components from session file.
-  //    If found, allocate storage.
-  else for (i = 0; i < NCOM; i++) {
-    char a[StrMax];
-    sprintf(a, "0");	// -- default
-    if (file -> valueFromSection (a, secForce, tok[i])) {
-      _enabled = true;
-      *(_a[i]  = allocAuxField(D, forcename + i)) = a;
-      VERBOSE cout << "    " << tok[i] << " = " << a << endl;
+    readSteadyFromFile (fname, _a);
+  } else for (i = 0; i < NCOM; i++) {
+      // -- Otherwise, try to read force components from session file.
+      //    If found, allocate storage.
+      char a[StrMax];
+      sprintf (a, "0");	// -- default
+      if (file -> valueFromSection (a, "FORCE", tok[i])) {
+	_enabled = true;
+	*(_a[i]  = allocAuxField(D, 'u' + i)) = a;
+	VERBOSE cout << "    " << tok[i] << " = " << a << endl;
+      } else _a[i] = NULL;
     }
-    else _a[i] = NULL;
-  }
 }
 
 
@@ -331,9 +360,6 @@ void SteadyForce::physical (AuxField*         ff ,
 // Applicator.
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "SteadyForce::physical";
-  const int_t verbose   = Femlib::ivalue ("VERBOSE");
-
   if (_a[com]) *ff += (*_a[com]);
 }
 
@@ -345,31 +371,28 @@ WhiteNoiseForce::WhiteNoiseForce (Domain* D   ,
 // direction(s), to all or a given mode, every _apply_step'th step
 // ---------------------------------------------------------------------------
 {
-  const char  routine[]         = "WhiteNoiseForce::WhiteNoiseForce";
-  const char  tok[3][StrMax]    = {"WHITE_EPS_X", 
-				   "WHITE_EPS_Y", 
-				   "WHITE_EPS_Z"};
-  const char  tok_mode[StrMax]  = "WHITE_MODE";
-  const char  tok_apply[StrMax] = "WHITE_APPLY_STEP";
-  const int_t verbose           = Femlib::ivalue ("VERBOSE");
+  const char  routine[] = "WhiteNoiseForce::WhiteNoiseForce";
+  const char* tok[]     = {"WHITE_EPS_X", "WHITE_EPS_Y", "WHITE_EPS_Z"};
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  int_t i;
 
   VERBOSE cout << "  " << routine << endl;
   _D = D;
 
-  for (int i = 0; i < NCOM; i++) {
+  for (i = 0; i < NCOM; i++) {
     _eps[i] = 0.;	// -- default
-    if (file -> valueFromSection (&_eps[i], secForce, tok[i]))
+    if (file -> valueFromSection (&_eps[i], "FORCE", tok[i]))
       VERBOSE cout << "    " << tok[i] << " = " << _eps[i] << endl;
   }
   _mode = -1;
-  if (file -> valueFromSection (&_mode, secForce, tok_mode)) {
+  if (file -> valueFromSection (&_mode, "FORCE", "WHITE_MODE")) {
     if (_mode < PERTURB_UNSET)
       message(routine, "WHITE_MODE must be >= -1", ERROR);
-    VERBOSE cout << "    " << tok_mode << " = " << _mode << endl;
+    VERBOSE cout << "    " << "WHITE_MODE" << " = " << _mode << endl;
   }
 
   _apply_step = 1;
-  if ((file -> valueFromSection (&_apply_step, secForce, tok_apply)))
+  if ((file -> valueFromSection (&_apply_step, "FORCE", "WHITE_APPLY_STEP")))
     VERBOSE cout <<  "  Applied every " << _apply_step << ". step." << endl;
 }
 
@@ -392,18 +415,12 @@ ModulatedForce::ModulatedForce (Domain* D   ,
 // Constructor.
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "ModulatedForce::ModulatedForce";
-  const int_t verbose   = Femlib::ivalue ("VERBOSE");
-
-  const char tok_a[3][StrMax]     = {"MOD_A_X",    
-				     "MOD_A_Y",
-				     "MOD_A_Z"};
-  const char tok_alpha[3][StrMax] = {"MOD_ALPHA_X",
-				     "MOD_ALPHA_Y",
-				     "MOD_ALPHA_Z"};
-  const char tok_file[]            = "MOD_A_FILE";
+  const char  routine[]   = "ModulatedForce::ModulatedForce";
+  const int_t verbose     = Femlib::ivalue ("VERBOSE");
+  const char* tok_a[]     = {"MOD_A_X",     "MOD_A_Y",     "MOD_A_Z"};
+  const char* tok_alpha[] = {"MOD_ALPHA_X", "MOD_ALPHA_Y", "MOD_ALPHA_Z"};
   char       a[StrMax], fname[StrMax];
-  int        i;
+  int_t      i;
 
   VERBOSE cout << "  " << routine << endl;
   _enabled = false;
@@ -413,33 +430,34 @@ ModulatedForce::ModulatedForce (Domain* D   ,
 
   bool alpha_found = false;
   for (i = 0; i < NCOM; i++) {
-    // -- try and read time-varying function alpha.
+    // -- Try to read time-varying function alpha.
     sprintf(_alpha[i], "0");
-    if (file -> valueFromSection (_alpha[i], secForce, tok_alpha[i])) {
+    if (file -> valueFromSection (_alpha[i], "FORCE", tok_alpha[i])) {
       alpha_found = true;
       VERBOSE cout << "    " << tok_alpha[i] << " = " << _alpha[i] << endl;
     }
   }
 
-  // -- disable if no alpha found.
+  // -- Disable if no alpha found.
+
   if (!alpha_found) return;
 
-  // -- spatially-varying function a.
+  // -- Spatially-varying function a.
   //    If given a filename, read from file...
 
-  if (file -> valueFromSection (fname, secForce, tok_file)) {
+  if (file -> valueFromSection (fname, "FORCE", "MOD_A_FILE")) {
     _enabled = true;
-    for (i = 0; i < NCOM; i++) _a[i]  = allocAuxField(D, forcename + i);
+    for (i = 0; i < NCOM; i++) _a[i]  = allocAuxField(D, 'u' + i);
     VERBOSE cout << "    reading file " << fname << endl;
-    readSteadyFromFile(fname, _a);
+    readSteadyFromFile (fname, _a);
   }
   // -- ... otherwise try and read force components from session file.
   //    Allocate storage only if needed.
   else for (i = 0; i < NCOM; i++) {
-    sprintf(a, "0");	// -- defaults
-    if (file -> valueFromSection (a, secForce, tok_a[i])) {
+    sprintf (a, "0");	// -- defaults
+    if (file -> valueFromSection (a, "FORCE", tok_a[i])) {
       _enabled = true;
-      _a[i]  = allocAuxField(D, forcename + i);
+      _a[i]  = allocAuxField (D, 'u' + i);
       *_a[i] = a;
       VERBOSE cout << "    " << tok_a[i] << " = " << a << endl;
     }
@@ -465,16 +483,17 @@ void ModulatedForce::physical (AuxField*         ff,
 SpatioTemporalForce::SpatioTemporalForce (Domain* D   ,
 					  FEML*   file)
 // ---------------------------------------------------------------------------
-// Constructor.  SpatioTemporalForce -- f = alpha(x, t) WARNING! We
-// evaluate alpha on full field EACH TIME STEP.  This severely degrades
-// performance!
+// Constructor.  SpatioTemporalForce -- f = alpha(x, t).
+//
+// WARNING! We will evaluate alpha by parsing it on the full field EACH
+// TIME STEP, which may severely degrade performance.
 // ---------------------------------------------------------------------------
 {
-  const char   routine[] = "SpatioTemporalForce::SpatioTemporalForce";
-  const int_t verbose    = Femlib::ivalue ("VERBOSE");
-  const char  tok_alpha[3][StrMax] = {"SPATIOTEMP_ALPHA_X",
-				      "SPATIOTEMP_ALPHA_Y",
-				      "SPATIOTEMP_ALPHA_Z"};
+  const char  routine[]   = "SpatioTemporalForce::SpatioTemporalForce";
+  const int_t verbose     = Femlib::ivalue ("VERBOSE");
+  const char* tok_alpha[] = {"SPATIOTEMP_ALPHA_X",
+			     "SPATIOTEMP_ALPHA_Y",
+			     "SPATIOTEMP_ALPHA_Z"};
   char        a[StrMax], fname[StrMax];
   int         i;
 
@@ -485,12 +504,12 @@ SpatioTemporalForce::SpatioTemporalForce (Domain* D   ,
   _a.resize (NCOM);
 
   for (i = 0; i < NCOM; i++) {
-    // -- try and read spatio-temporally-varying function alpha.
+    // -- Try to read spatio-temporally-varying function alpha.
     sprintf(_alpha[i], "0");
-    if (file -> valueFromSection (_alpha[i], secForce, tok_alpha[i])) {
+    if (file -> valueFromSection (_alpha[i], "FORCE", tok_alpha[i])) {
       _enabled = true;
       VERBOSE cout << "    " << tok_alpha[i] << " = " << _alpha[i] << endl;
-      _a[i]  = allocAuxField(D, forcename + i);
+      _a[i]  = allocAuxField(D, 'u' + i);
     }
     else _a[i] = NULL;
   }
@@ -521,45 +540,42 @@ SpongeForce::SpongeForce (Domain* D   ,
 {
   const char  routine[] = "SpongeForce::SpongeForce";
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  const char* tok_ref[] = {"SPONGE_U", "SPONGE_V", "SPONGE_W"};
   char        s[StrMax];
-  const char  tok_ref[3][StrMax] = {"SPONGE_U", 
-				    "SPONGE_V", 
-				    "SPONGE_W"};
+  int_t       i;
+  
   _enabled = false;
   _D = D;
   _update = 0;
 
-  // -- setup and read sponge mask from session file
+  // -- Setup and read sponge mask from session file.
 
-  _mask = allocAuxField(D, forcename);
-  if (!(file -> valueFromSection (s, secForce, "SPONGE_M"))) {
-    VERBOSE cout <<  "  SPONGE_M not found. Disabling sponge layer." << endl;
-    return;
-  }
+  VERBOSE cout << "  " << routine << endl;
+  
+  _mask = allocAuxField (D, 'u');
+  if (!(file -> valueFromSection (s, "FORCE", "SPONGE_M"))) return;
 
   _enabled = true;
 
   VERBOSE cout << "    SPONGE_M = " << s << endl;
 
-  // -- time-depended mask?
+  // -- Time-depended mask?
 
-  if ((file -> valueFromSection (&_update, secForce, "SPONGE_UPDATE"))) {
-    VERBOSE cout <<  "  Updating every " << _update << ". step." << endl;
-    strcpy(_mask_func, s);
+  if ((file -> valueFromSection (&_update, "FORCE", "SPONGE_UPDATE"))) {
+    VERBOSE cout <<  "    SPONGE_UPDATE = " << _update << endl;
+    strcpy (_mask_func, s);
   }
   else
     *_mask = s;
 
-  // -- read reference velocity from session file
+  // -- Read reference velocity from session file.
 
-  _Uref.resize(3);
-  for (int i = 0; i < NCOM; i++) {
-    char s[StrMax];
-    sprintf(s, "0");	// -- default
-    file -> valueFromSection (s, secForce, tok_ref[i]);
-    _Uref[i] = allocAuxField(_D, 'r' + i);
-    *_Uref[i]  = s;
-
+  _Uref.resize (3);
+  for (i = 0; i < NCOM; i++) {
+    sprintf (s, "0");	// -- default
+    file -> valueFromSection (s, "FORCE", tok_ref[i]);
+     _Uref[i] = allocAuxField (_D, 'r' + i);
+    *_Uref[i] = s;
   }
 }
 
@@ -568,8 +584,8 @@ void SpongeForce::physical (AuxField*         ff ,
 			    const int         com,
 			    vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
-// Applicator.
-// -- Since this overwrites ff, SpongeForce must be first in list!!
+// Applicator.  Since this overwrites ff as opposed to adding to it,
+// SpongeForce must be first in list, see FieldForce constructor,
 // ---------------------------------------------------------------------------
 {
   const char   routine[] = "SpongeForce::physical";
@@ -602,11 +618,12 @@ DragForce::DragForce (Domain* D   ,
 
   _enabled = false;
 
-  // -- setup and read mask from session file
-  if (!(file -> valueFromSection (s, secForce, "DRAG_M"))) {
-    VERBOSE cout <<  "  DRAG_M not found. Disabling drag force." << endl;
+  // -- Setup and read mask from session file.
+
+  VERBOSE cout << "  " << routine << endl;
+  
+  if (!(file -> valueFromSection (s, "FORCE", "DRAG_M")))
     return;
-  }
   _D = D;
   _mask = allocAuxField (_D, 0);
   _umag = allocAuxField (_D, 0);
@@ -629,7 +646,7 @@ void DragForce::physical (AuxField*         ff ,
 
   if (!_enabled) return;
 
-  // -- compute velocity magnitude
+  // -- Compute velocity magnitude.
   if (com == 0) {
     _umag  -> mag(U);
     *_umag *= *_mask;
@@ -645,16 +662,16 @@ CoriolisForce::CoriolisForce (Domain* D   ,
 // Constructor.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "CoriolisForce::CoriolisForce";
-  const int_t verbose = Femlib::ivalue ("VERBOSE");
-  const char  tokOmega[3][StrMax]    = {"CORIOLIS_OMEGA_X",
-					"CORIOLIS_OMEGA_Y",
-					"CORIOLIS_OMEGA_Z"};
-  const char  tokDomegaDt[3][StrMax] = {"CORIOLIS_DOMEGA_X_DT",
-                                        "CORIOLIS_DOMEGA_Y_DT",
-                                        "CORIOLIS_DOMEGA_Z_DT"};
-  const char  tokUnsteady[StrMax]    = {"CORIOLIS_UNSTEADY"};
+  const char  routine[]     = "CoriolisForce::CoriolisForce";
+  const int_t verbose       = Femlib::ivalue ("VERBOSE");
+  const char* tokOmega[]    = {"CORIOLIS_OMEGA_X",
+			       "CORIOLIS_OMEGA_Y",
+			       "CORIOLIS_OMEGA_Z"};
+  const char* tokDomegaDt[] = {"CORIOLIS_DOMEGA_X_DT",
+			       "CORIOLIS_DOMEGA_Y_DT",
+			       "CORIOLIS_DOMEGA_Z_DT"};
   char        s[StrMax];
+  int_t       i;
 
   VERBOSE cout << "  " << routine << endl;
 
@@ -667,22 +684,22 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   _minus_o.resize(3);
   _DoDt.resize(3);
 
-  file -> valueFromSection (&_unsteady, secForce, tokUnsteady);
+  file -> valueFromSection (&_unsteady, "FORCE", "CORIOLIS_UNSTEADY");
 
-  // -- try and read omega's components from session file
+  // -- Try to read omega's components from session file.
 
-  for (int i = 0; i < 3; i++) {
+  for (i = 0; i < 3; i++) {
 
-    sprintf(_omega[i], "0");	// -- default
-    sprintf(_DomegaDt[i], "0");
+    sprintf (_omega[i], "0");	// -- Default.
+    sprintf (_DomegaDt[i], "0");
     if (NCOM == 3 || i == 2) {
-      if (file -> valueFromSection (_omega[i], secForce, tokOmega[i])) {
+      if (file -> valueFromSection (_omega[i], "FORCE", tokOmega[i])) {
         _enabled = true;
         VERBOSE cout << "    " << tokOmega[i] << " = " << _omega[i] << endl;
       }
 
       if (_unsteady && 
-	  (file -> valueFromSection (_DomegaDt[i], secForce, tokDomegaDt[i])))
+	  (file -> valueFromSection (_DomegaDt[i], "FORCE", tokDomegaDt[i])))
         VERBOSE cout << "    " 
 		     << tokDomegaDt[i] << " = " << _DomegaDt[i] << endl;
     }
@@ -698,14 +715,14 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   }
 
   //  if (NCOM == 2) 
-  //    VERBOSE cout << "    2-D: ignoring possible CORIOLIS_[D]OMEGA_[XY][_DT]."
+  //    VERBOSE cout << "  2-D: ignoring possible CORIOLIS_[D]OMEGA_[XY][_DT]."
   //		 << endl;
 
   if (!_unsteady)
-    for (int i = 0; i < 3; i++) _minus_2o[i] = -2. * Femlib::value (_omega[i]);
+    for (i = 0; i < 3; i++) _minus_2o[i] = -2. * Femlib::value (_omega[i]);
 
   _a.resize (NCOM);
-  for (int i = 0; i < NCOM; i++) _a[i] = allocAuxField(D, forcename + i);
+  for (i = 0; i < NCOM; i++) _a[i] = allocAuxField(D, 'u' + i);
 }
 
 
@@ -718,14 +735,17 @@ void CoriolisForce::physical (AuxField*               ff ,
 {
   const char  routine[] = "CoriolisForce::physical";
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  int_t       i;
 
   if (!_enabled) return;
+
+  if (com >= NCOM) return; // -- No coriolis force applied to the scalar field
 
   if (NCOM == 2 && Geometry::cylindrical())
     message (routine, "2-D, cylindrical not implemented yet.", ERROR);
   if (_unsteady) {
     if (com == 0) 
-      for (int i = 0; i < 3; i++) {
+      for (i = 0; i < 3; i++) {
 	if (NCOM == 2) i = 2;
 	_o[i] = Femlib::value (_omega[i]);
 
@@ -741,7 +761,7 @@ void CoriolisForce::physical (AuxField*               ff ,
     // - Omega x Omega x X  (actually, we compute  + Omega x ((- Omega) x X))
 
     if (com == 0)
-      for (int i = 0; i < NCOM; i++) {
+      for (i = 0; i < NCOM; i++) {
 	*_a[i] = 0.;
 	_a[i] -> crossXPlus (i, _minus_o);
       }
@@ -763,24 +783,29 @@ SFDForce::SFDForce (Domain* D   ,
 {
   const char  routine[] = "SFDForce::SFDForce";
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  int_t       i;
+
+  VERBOSE cout << "  " << routine << endl;
 
   _enabled = false;
+  _SFD_DELTA = _SFD_CHI = 0.0;
 
-  if (!(file -> valueFromSection (&_SFD_DELTA, secForce, "SFD_DELTA") ||
-	file -> valueFromSection (&_SFD_CHI,   secForce, "SFD_CHI"))) return;
+  if (!(file -> valueFromSection (&_SFD_DELTA, "FORCE", "SFD_DELTA") &&
+	file -> valueFromSection (&_SFD_CHI,   "FORCE", "SFD_CHI"  ))) return;
 
-
-  if (!(file -> valueFromSection (&_SFD_DELTA, secForce, "SFD_DELTA") &&
-	file -> valueFromSection (&_SFD_CHI,   secForce, "SFD_CHI"))) {
-    message (routine, "SFD_DELTA and SFD_CHI must be paired.", ERROR);
+  if ((_SFD_DELTA < EPSDP) || (_SFD_CHI < EPSDP)) {
+    VERBOSE message (routine,
+		     "SFD_DELTA & SFD_CHI must both be positive to set SFD",
+		     REMARK);
+    return;
   }
 
   _D = D;
   _enabled = true;
 
   _a.resize (NCOM);
-  for (int i = 0; i < NCOM; i++)
-    *(_a[i] = allocAuxField (D, forcename + i)) = 0.0;
+  for (i = 0; i < NCOM; i++)
+    *(_a[i] = allocAuxField (D, 'u' + i)) = 0.0;
 
   VERBOSE {
     cout << "  SFD_DELTA = " << _SFD_DELTA << endl;
@@ -820,4 +845,75 @@ void SFDForce::physical (AuxField*         ff ,
   _a[com]  -> axpy (dt / _SFD_DELTA, *U[com]);
 
   step++;
+}
+
+
+BuoyancyForce::BuoyancyForce (Domain* D   ,
+			      FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor for Boussinesq buoyancy.  NB: we only implement
+// buoyancy terms that derive from a gravity field.  More correctly
+// they should also account at least for reference frame acceleration
+// (e.g. of Coriolis type) or body force.  C'est dommage.  For
+// cylindrical coordinates, only the axial component of the gravity
+// vector gets used/has relevance.
+// ---------------------------------------------------------------------------
+{
+  const char  routine[] = "BuoyancyForce::BuoyancyForce";
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  const char* vecGrav[] = {"BOUSSINESQ_GX",  // -- Gravity direction cosines
+ 		           "BOUSSINESQ_GY",  //    (or scaled equivalent, since
+			   "BOUSSINESQ_GZ"}; //    normalisation is applied).
+  real_t      gravMag = 0.0, norm = 0.0;
+  int_t       i;
+
+  VERBOSE cout << "  " << routine << endl;
+  _enabled = false;
+ 
+  _TREF = _BETAT = _g[0] = _g[1] = _g[2] = 0.0;
+
+  if (!file -> valueFromSection (&gravMag, "FORCE", "BOUSSINESQ_GRAVITY"))
+    return;
+  VERBOSE cout << "    BOUSSINESQ_GRAVITY = " << gravMag << endl;
+  if (file -> valueFromSection (&_TREF,   "FORCE", "BOUSSINESQ_TREF"))
+    VERBOSE cout << "    BOUSSINESQ_TREF = "    << _TREF << endl;
+  if (file -> valueFromSection (&_BETAT,  "FORCE", "BOUSSINESQ_BETAT"))
+    VERBOSE cout << "    BOUSSINESQ_BETAT = "   << _BETAT << endl;
+  
+  if ((gravMag < EPSDP) || (fabs(_BETAT) < EPSDP))
+    message (routine, "gravity and/or expansion coeff. magnitudes <=0", ERROR);
+
+  for (i = 0; i < 3; i++)
+    if (file -> valueFromSection (_g+i, "FORCE", vecGrav[i]))
+      VERBOSE cout << "    " << vecGrav[i] << " = " << _g[i] << endl;
+  if (Geometry::cylindrical()) _g[1] = _g[2] = 0.0;
+  if ((norm = sqrt(_g[0]*_g[0] + _g[1]*_g[1] + _g[2]*_g[2])) < EPSDP)
+    message (routine, "no active gravity vector component", WARNING);
+  for (i = 0; i < 3; i++) _g[i] *= gravMag / norm;
+
+  // -- If we got this far, everything should be OK.
+  
+  _enabled = true;
+  _D = D;
+  _a.resize (1);
+  _a[0] = allocAuxField (D); // -- Workspace for use by applicator.
+}
+
+
+void BuoyancyForce::physical (AuxField*               ff ,
+			      const int               com,
+			      const vector<AuxField*> U  )
+// ---------------------------------------------------------------------------
+// Applicator for Boussinesq buoyancy.
+// ---------------------------------------------------------------------------
+{
+  if (!_enabled) return;
+
+  if (fabs (_g[com]) > EPSDP) {
+    *_a[0]  = *U[NCOM]; 		// -- Scalar/temperature field.
+    *_a[0] -= _TREF;
+    *_a[0] *= _BETAT * _g[com];
+
+    *ff -= *_a[0];
+  }
 }

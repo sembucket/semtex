@@ -1,15 +1,24 @@
-/* This is source code freely distributed by AMTEC Inc, suppliers of Tecplot.
+/*****************************************************************************
+ * preplot: utility to convert Tecplot ASCII input file to binary format.
+ *
+ * @file utility/preplot.c
+ * @ingroup group_utility
+ *
+ * This is source code freely distributed by AMTEC Inc, suppliers of Tecplot.
  *
  * NB: it is *NOT* part of Semtex and is covered by different
  * distribution restrictions. Please see the AMTEC website.
  *
- * This seems to work on many UNIX compilations:
+ * This seems to work on most current UNIX implementations.
  *
  * cc preplot.c -DIRIS -o preplot
- */
+ *****************************************************************************/
+
+/* So: */
+
+#define IRIS
 
 /*
-
 
 USAGE:
 -----------------------------------------------------------------------
@@ -2520,7 +2529,7 @@ static Boolean Plot3D_GetList(ListString,PlaneSet,C)
 
 
 
-main (argc,argv)
+int main (argc,argv)
      int   argc;
      char *argv[];
 
@@ -4068,6 +4077,8 @@ PLOT3D input ONLY:\n\
   if (Plot3DBadBlockCount)
     printf("\nMarker Blocks encountered = %ld\n\n",Plot3DBadBlockCount);
 #endif
+
+  exit (0);
 }
 
 

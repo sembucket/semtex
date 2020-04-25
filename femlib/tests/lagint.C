@@ -15,7 +15,7 @@
 // File contains <num> 2-tuples, each supplying a knot location and
 // the corresponding value there.
 //
-// $Id$
+// $Id: lagint.C,v 9.1 2019/05/30 06:36:07 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

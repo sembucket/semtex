@@ -1,7 +1,7 @@
 #!/bin/csh
 ##############################################################################
 # Run elliptic solver on test files.
-# $Id$
+# $Id: testsuite,v 9.1 2019/05/30 06:36:05 hmb Exp $
 
 echo "*************************************************"
 echo "* Spectral element Helmholtz solver test suite. *"

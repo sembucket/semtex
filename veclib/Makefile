@@ -2,7 +2,7 @@
 # Remake linear algebra primitive library (libvec.a), and maintain header
 # files for Veclib, BLAS, & LAPACK calls.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:13 hmb Exp $
 ##############################################################################
 
 SEM    = ..

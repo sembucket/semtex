@@ -4,7 +4,7 @@
  * NB: it is assumed that this operation is vectorizable, i.e. that there
  * are no repeated indices in the indirection vector y[i].
  *
- * $Id$
+ * $Id: xgathr_scatr.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

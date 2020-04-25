@@ -5,7 +5,8 @@
 <TOKENS>
         Re          = 17800
         KINVIS      = 1/Re
-        FFX         = 13.69e-3
+
+
         C_VD        = 40
         C_SMAG      = 0.07
         REFVIS      = 6.5*KINVIS
@@ -43,6 +44,10 @@
 	CHKPOINT  = 1
 	ITERATIVE = 1
 </TOKENS>
+
+<FORCE>
+        FFX = 13.69e-3
+</FORCE>
 
 <FIELDS>
 	u	v	w	p

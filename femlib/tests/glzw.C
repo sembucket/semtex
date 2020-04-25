@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // glzw.C: print out Gauss--Lobatto nodes and weights on [-1, 1].
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:06 $, Hugh Blackburn
 //
 // Usage: glzw -N <num> [-w <a,b>]
 // where
@@ -10,7 +10,7 @@
 //
 // The default weights 0,0 generate quadrature points for Legendre polys.
 //
-// $Id$
+// $Id: glzw.C,v 9.1 2019/05/30 06:36:06 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

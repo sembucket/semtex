@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // particle.C: functions for integrating positions of particles.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -25,7 +25,7 @@
 // See also analysis.C
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: particle.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 

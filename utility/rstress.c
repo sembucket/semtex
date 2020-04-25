@@ -1,14 +1,22 @@
 /*****************************************************************************
- * rstress.c:  Compute Reynolds stresses.
+ * rstress: utility which has two usage modes, either computing
+ * Reynolds stresses or elementrary arithmetic operations on field
+ * files.
  *
- * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
- * 
- * USAGE
+ * 1. When one input file is supplied, compute Reynolds stresses: the
+ * input is assumed to be a .avg field file produced by running DNS
+ * with AVERAGE=2.
+
+ * 2. Alternatively, when two input files are supplied, compute a
+ * single outcome file via elementary arithmetic operations (+,-,*,/).
+ *
+ * Usage
  * -----
  * rstress [options] avg.file [field.file]
+ *
  * options:
  * -h         ... print this message
- * -<s,a,m,d> ... file ops subtract, add, multiply, divide [Default: subtract]
+ * -<s|a|m|d> ... file ops subtract, add, multiply, divide [Default: subtract]
  *
  * Binary arithmetic operations only have significance when two files
  * are supplied.  For subtract and divide,
@@ -16,24 +24,27 @@
  * If more than one operation is supplied on the command line,
  * take the last.
  *
- * For binary operations, there can be more fields in the first
+ * For arithmetic operations, there can be more fields in the first
  * (typically the average field file) than in the second (typically an
  * instantaneous file).  The operation is only performed on the
  * variables present in both files.
  *
- * SYNOPSIS
+ * Synopsis
  * --------
- * Rstress deals with field-average files.  If called with just an
- * average file (e.g. session.avg) as input, it tries to compute
- * Reynolds stress components using the correlations and average
- * fields it is assumed to contain.  If called with an additional
- * field file, the average values contained in the average file are
+ * Rstress is primarily designed to deal with field-average files.  If
+ * called with just an average file (e.g. session.avg) as input, it
+ * tries to compute Reynolds stress components using the correlations
+ * and average fields it is assumed to contain (by subtracting
+ * products of averages from averages of products, i.e. the standard
+ * way of computing covariances).  If called with an additional field
+ * file, the average values contained in the average file are
  * subtracted from the field file (i.e. the field file is assumed to
  * contain instantaneous values from which the average is to be
  * subtracted).
  *
- * Note that this also allows rstress to be used to subtract
- * (perhaps instantaneous) values in one field dump from another.
+ * Note that this also allows rstress to be used to subtract (perhaps
+ * instantaneous) values in one field dump from another.  This is
+ * extremely useful for checking if two field files are the same.
  * Alternatively we can also add, multiply or divide values, allowing
  * rstress to provide a limited utility to manipulate fields.
  *
@@ -44,6 +55,10 @@
  *
  * Product terms are computed without dealiasing.
  *
+ * @file utility/rstress.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1997 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -63,7 +78,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: rstress.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -288,30 +303,50 @@ static void chknames (const char* field)
  * Check that the names of the enclosed fields make sense for Reynolds
  * stress computations.  Computations could be 2D or 3D.
  *
- * Average velocity fields are called: u, v    (& w);
- * Product average  fields are called: A, B, C (& D, E, F):
+ * Average velocity fields are called: u, v    (& w/c)     (& w, c)   
+ * Product average  fields are called: A, B, C (& D, E, F) (& G, H, I, J):
  *
  *                   / uu uv uw \     /  A  B  D \
  *                   | .  vv vw |  =  |  .  C  E |
  *                   \ .  .  ww /     \  .  .  F /
+ *
+ *                   / uu uv uc \     /  A  B  G \
+ *                   | .  vv vc |  =  |  .  C  H |
+ *                   \ .  .  cc /     \  .  .  J /
+ *
+ *                / uu uv uw uc \     /  A  B  D  G \
+ *                | .  vv vw vc |  =  |  .  C  E  H |
+ *                | .  .  ww wc |     |  .  .  F  I |
+ *                \ .  .  .  cc /     \  .  .  .  J /
  * ------------------------------------------------------------------------- */
 {
   char err[STR_MAX];
 
   if (!strstr (field, "uv")) {
     sprintf (err, "field names (%s) should contain \"uv\"", field);
-    message (prog, err, ERROR);
+    message (prog, err, WARNING);
   }
-  if (strstr (field, "w"))
+  if (strstr (field, "w") && strstr (field, "c")) {
+    if (!strstr (field, "ABCDEFGHIJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
+      message (prog, err, WARNING);
+    }
+  } else if (strstr (field, "w")) {
     if (!strstr (field, "ABCDEF")) {
       sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
-      message (prog, err, ERROR);
+      message (prog, err, WARNING);
     }
-  else
+  } else if (strstr (field, "c")) {
+    if (!strstr (field, "ABCGHJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCGHJ\"", field);
+      message (prog, err, WARNING);
+    }
+  } else {
     if (!strstr (field, "ABC")) {
       sprintf (err, "field names (%s) should contain \"ABC\"", field);
-      message (prog, err, ERROR);
+      message (prog, err, WARNING);
     }
+  }
 }
 
 
@@ -338,7 +373,7 @@ static void covary (Dump* h)
  * in physical space and we don't dealias.
  * ------------------------------------------------------------------------- */
 {
-  int       i, j, k, m;
+  int       i, j, k, l, m;
   const int npts = h -> np * h -> np * h -> nz * h -> nel;
   
   /* -- 2D. */
@@ -350,21 +385,40 @@ static void covary (Dump* h)
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[i], 1, h->data[k], 1);
   k = _index (h -> field, 'B');
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[j], 1, h->data[k], 1);
-  k = _index ( h -> field, 'C');
+  k = _index (h -> field, 'C');
   dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
 
-  if (!strstr (h -> field, "w")) return;
+  if (!strstr (h -> field, "w") && !strstr (h -> field, "c")) return;
 
   /* -- 3D. */
-  
-  k = _index (h -> field, 'w');
+  if (strstr (h -> field, "w")) {
+    k = _index (h -> field, 'w');
 
-  m = _index (h -> field, 'D');
-  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
-  m = _index (h -> field, 'E');
-  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
-  m = _index (h -> field, 'F');
-  dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'D');
+    dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'E');
+    dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'F');
+    dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+  }
+
+  /* -- C.  */
+  if (strstr (h -> field, "c")) {
+    l = _index (h -> field, 'c');
+
+    m = _index (h -> field, 'G');
+    dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[l], 1, h->data[m], 1);
+    m = _index (h -> field, 'H');
+    dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[l], 1, h->data[m], 1);
+    m = _index (h -> field, 'J');
+    dvvvtm (npts, h->data[m], 1, h->data[l], 1, h->data[l], 1, h->data[m], 1);
+  }
+
+  /* -- 3D & C. */
+  if (strstr (h -> field, "w") && strstr (h -> field, "c")) {
+    m = _index (h -> field, 'I');
+    dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[l], 1, h->data[m], 1);
+  }
 }
 
 

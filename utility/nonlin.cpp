@@ -1,40 +1,44 @@
-///////////////////////////////////////////////////////////////////////////////
-// nonlin.cpp: given a field file containing velocity data u, compute
-// and output the nonlinear terms u.grad(u), in physical space.
-//
-// Copyright (c) 2016 <--> $Date$,
-//   Hugh Blackburn
-//
-// USAGE
-// -----
-// nonlin [options] session [file]
-// options:
-// -h       ... print this message.
-//
-// The nonlinear terms are output as a standard semtex field file,
-// where the names uv(w) now stand for components of the nonlinear
-// terms associated with the xy(z) directions.  Any extra fields in
-// the input file are ignored (and discarded).
-//
-// The computation of nonlinear terms u.grad(u) is as stated: in
-// non-conservative (a.k.a. convective) form.  This differs from the
-// default used by dns, which is the (alternating) skew symmetric
-// form.
-//
-// i.e., in Cartesian component form
-//
-//           n  =   u  d(u ) / dx 
-//            i      j    i      j
-//
-// in cylindrical coordinates
-//
-//           nx = {ud(u)/dx + vd(u)/dy + 1/y [wd(u)/dz]}
-//           ny = {ud(v)/dx + vd(v)/dy + 1/y [wd(v)/dz - ww]}
-//           nz = {ud(w)/dx + vd(w)/dy + 1/y [wd(w)/dz + wv]}
-//
-// The nonlinear terms are NOT mass-matrix smoothed (averaged) along
-// element boundaries, as is done in dns.
-// 
+/*****************************************************************************
+ * nonlin: given a field file containing velocity data u, utility
+ * computes and outputs the nonlinear terms u.grad(u), in physical
+ * space.
+ *
+ * Usage
+ * -----
+ * nonlin [options] session [file]
+ * options:
+ * -h       ... print this message.
+ *
+ * The nonlinear terms are output as a standard semtex field file,
+ * where the names uv(w) now stand for components of the nonlinear
+ * terms associated with the xy(z) directions.  Any extra fields in
+ * the input file are ignored (and discarded).
+ *
+ * Synopsis
+ * --------
+ * The computation of nonlinear terms u.grad(u) is as stated: in
+ * non-conservative (a.k.a. convective) form.  This differs from the
+ * default used by dns, which is the (alternating) skew symmetric
+ * form.
+ *
+ * i.e., in Cartesian component form
+ *
+ *           n  =   u  d(u ) / dx 
+ *            i      j    i      j
+ *
+ * in cylindrical coordinates
+ *
+ *           nx = {ud(u)/dx + vd(u)/dy + 1/y [wd(u)/dz]}
+ *           ny = {ud(v)/dx + vd(v)/dy + 1/y [wd(v)/dz - ww]}
+ *           nz = {ud(w)/dx + vd(w)/dy + 1/y [wd(w)/dz + wv]}
+ *
+ * The nonlinear terms are NOT mass-matrix smoothed (averaged) along
+ * element boundaries, as is done in dns.
+ *
+ * @file utility/nonlin.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2016 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -54,7 +58,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: nonlin.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 
@@ -303,7 +307,7 @@ static void getDump (istream&           file,
     }
   }
 
-  if (file.bad()) message (prog, "problem reading input data", ERROR);
+  if (file.fail ()) message (prog, "problem reading input data", ERROR);
 
   // -- Clear all nonlinear storage areas.
 

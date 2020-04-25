@@ -14,7 +14,7 @@
  *     C    ... double* ... result vector
  *     ncb  ... int     ... number of columns in B
  *
- * $Id$
+ * $Id: XMXM.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

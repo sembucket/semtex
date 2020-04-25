@@ -1,7 +1,7 @@
 #!/bin/sh
 ##############################################################################
 # Run Navier--Stokes solver regression checks.
-# $Id$
+# $Id: testregress,v 9.1 2019/05/30 06:36:11 hmb Exp $
 
 case $# in
 0) echo "usage: testregress new_code_version"; exit 0
@@ -23,9 +23,11 @@ do
   $CODE -chk $i >/dev/null 2>&1
   compare -n $i $i.fld > /dev/null 2> $i.new
   cmp -s $i.new ../regress/$i.ok
-  case $? in
-  0) echo passed: $i ;;
-  1) echo failed: $i ;;
-  esac
+  if [ $? -ne 0 ]
+  then
+      echo failed: $i
+  else
+      echo passed: $i
+  fi
   rm $i*
 done

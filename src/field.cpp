@@ -1,102 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// field.cpp: 
+///////////////////////////////////////////////////////////////////////////////
+/// field.cpp: Derived from AuxField, Field adds boundary conditions,
+/// global numbering, and the ability to solve Helmholtz problems.
+/// See also field.h.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
-//
-// class Field
-// 
-// Derived from AuxField, Field adds boundary conditions,
-// global numbering, and the ability to solve Helmholtz problems.
-// 
-// Field solve routines provide solution to the discrete form of the
-// Helmholtz equation
-//                      
-//                  div (grad (u)) - \lambda^2 u = f,
-//
-// on domain \Omega, subject to essential BCs u = g on \Gamma_g and
-// natural BCs \partial u / \partial n = h on \Gamma_h, where the
-// boundary \Gamma of \Omega is the union of (non-overlapping)
-// \Gamma_g and \Gamma_h and n is the unit outward normal vector on
-// \Gamma.  \lambda^2 is called the Helmholtz constant below.
-//
-// The Galerkin form, using integration by parts with weighting functions w
-// which are zero on \Gamma_g, is
-//
-//            (grad u, grad w) + \lambda^2 (u, w) = - (f, w) + <h, w>
-//
-// where (a, b) = \int a.b d\Omega is an integration over the domain and
-//       <a, b> = \int a.b d\Gamma is an integration over the domain boundary.
-//
-// The discrete (finite element) equivalent is to solve
-//
-//                   K.u + \lambda^2 M.u = - M.f + <h, w>
-//
-// or
-//
-//                         H.u = - M.f + <h, w>
-//
-// where K, M and H are respectively (assembled) "stiffness", "mass"
-// and Helmholtz matrices.
-//
-// Some complications arise from dealing with essential boundary
-// conditions, since typically the elemental matrices K^e, M^e which
-// are assembled to form K and M do not account for the boundary
-// requirements on w.  There are a number of ways of dealing with this
-// issue: one approach is to partition H as it is formed (here F =
-// -M.f + <h, w>):
-//
-//   +--------+-------------+ /  \     /  \
-//   |        |             | |  |     |  |
-//   |   Hp   |     Hc      | |u |     |F |   u : nodal values for solution.
-//   |        |(constraint) | | s|     | s|    s
-//   |        |             | |  |     |  |       (n_solve values)
-//   +--------+-------------+ +--+     +--+
-//   |        | H_ess: this | |  |  =  |  |
-//   |        | partition   | |  |     |  |
-//   |    T   | relates to  | |u |     |F |   u : are given essential BCs.
-//   |  Hc    | essential   | | g|     | g|    g
-//   |        | BC nodes    | |  |     |  |       (n_global - n_solve values)
-//   |        | and is not  | |  |     |  |
-//   |        | assembled.  | |  |     |  |
-//   +--------+-------------+ \  /     \  /
-//
-// Partition out the sections of the matrix corresponding to the known
-// nodal values (essential BCs), and solve instead the constrained
-// problem
-//
-//   +--------+               /  \     /  \     +-------------+ /  \
-//   |        |               |  |     |  |     |             | |  |
-//   |   Hp   |               |u |     |F |     |     Hc      | |  |
-//   |        |               | s|  =  | s|  -  |             | |u |
-//   |        |               |  |     |  |     |             | | g|
-//   +--------+               \  /     \  /     +-------------+ |  |.
-//                                                              |  |
-//                                                              |  |
-//                                                              \  /
-//
-// Here n_global is the number of nodes that receive global node
-// numbers, typically those on the mesh edges.  N_solve is the number
-// of these nodes that have values that must be solved for,
-// i.e. n_global minus the number of global nodes situated on
-// essential-type boundaries.
-//
-// The action of Hc on u_g can be formed by a loop over the elements
-// which touch the essential boundaries and does not require storage
-// of the partition Hc.  M.f can also be formed on an
-// element-by-element basis and is cheap for nodal spectral elements
-// since M is diagonal.  Both tasks are performed by the
-// Field::constrain routine below.
-//
-// FIELD NAMES
-// -----------
-// The (one character) names of field variables are significant, and have
-// the following reserved meanings:
-// 
-// u:  First velocity component.            (Cylindrical: axial     velocity.)
-// v:  Second velocity component.           (Cylindrical: radial    velocity.)
-// w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
-// p:  Pressure divided by density.
-// c:  Scalar for transport or elliptic problems.
+// Copyright (c) 1994 <--> $Date: 2019/09/07 08:56:55 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -117,7 +24,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: field.cpp,v 9.3 2019/09/07 08:56:55 hmb Exp $";
 
 #include <sem.h>
 
@@ -127,8 +34,8 @@ Field::Field (BoundarySys*      B,
 	      const int_t       N,
 	      vector<Element*>& E,
 	      const char        C) :
-// ---------------------------------------------------------------------------
-// Create storage for a new Field from scratch.
+/// --------------------------------------------------------------------------
+/// Create storage for a new Field from scratch.
 // ---------------------------------------------------------------------------
   AuxField (M, N, E, C),
   _bsys    (B)
@@ -168,15 +75,15 @@ Field::Field (BoundarySys*      B,
 
 
 void Field::bTransform (const int_t sign)
-// ---------------------------------------------------------------------------
-// Compute forward or backward 1D-DFT of boundary value storage areas.
-//
-// Normalization is carried out on forward transform, such that the zeroth
-// mode's real_t data are the average over the homogeneous direction of the
-// physical space values.  See also comments for AuxField::transform.
-//
-// The Nyquist data do not need to be zeroed as these planes are never
-// evolved regardless of BC.
+/// --------------------------------------------------------------------------
+/// Compute forward or backward 1D-DFT of boundary value storage areas.
+///
+/// Normalization is carried out on forward transform, such that the zeroth
+/// mode's real_t data are the average over the homogeneous direction of the
+/// physical space values.  See also comments for AuxField::transform.
+///
+/// The Nyquist data do not need to be zeroed as these planes are never
+/// evolved regardless of BC.
 // ---------------------------------------------------------------------------
 {
   const int_t nZ  = Geometry::nZ();
@@ -202,15 +109,19 @@ void Field::bTransform (const int_t sign)
 void Field::evaluateBoundaries (const Field* P      ,
 				const int_t  step   ,
 				const bool   Fourier)
-// ---------------------------------------------------------------------------
-// Traverse Boundaries and evaluate according to kind.  Note that for
-// 3D this evaluation is done in Fourier-transformed space if Fourier
-// = true (the default).
-//
-// This routine is mainly intended to be used for boundary conditions
-// that must be re-evaluated at every step, such as high-order
-// pressure BCs or velocity and scalar fields that explicitly vary in
-// time.
+/// --------------------------------------------------------------------------
+/// Traverse Boundaries and evaluate according to kind.  Note that for
+/// 3D this evaluation is done in Fourier-transformed space if Fourier
+/// = true (the default).
+///
+/// This routine is mainly intended to be used for boundary conditions
+/// that must be re-evaluated at every step, such as high-order
+/// pressure BCs or velocity and scalar fields that explicitly vary in
+/// time.
+///
+/// Note that Field* P is eventually not used by Condition::evaluate()
+/// if Fourier is false, so we could alternatively use a test on
+/// existence (non-NULLness) of P to detect intention.
 // ---------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();
@@ -241,9 +152,10 @@ void Field::evaluateBoundaries (const Field* P      ,
 
 void Field::evaluateM0Boundaries (const Field* P   ,
 				  const int_t  step)
-// ---------------------------------------------------------------------------
-// Traverse Boundaries and evaluate according to kind, but only for Mode 0.
-// ---------------------------------------------------------------------------
+/// --------------------------------------------------------------------------
+/// Traverse Boundaries and evaluate according to kind, but only for
+/// Mode 0, i.e. on the z-average mode.
+/// ---------------------------------------------------------------------------
 {
   ROOTONLY {
     const vector<Boundary*>& BC = _bsys -> BCs (0);
@@ -259,8 +171,8 @@ void Field::evaluateM0Boundaries (const Field* P   ,
 
 void Field::addToM0Boundaries (const real_t val,
 			       const char*  grp)
-// ---------------------------------------------------------------------------
-// Add val to 0th Fourier mode's bc storage area on BC group "grp".
+/// --------------------------------------------------------------------------
+/// Add val to 0th Fourier mode's bc storage area on BC group "grp".
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
@@ -276,9 +188,10 @@ void Field::addToM0Boundaries (const real_t val,
 
 
 Field& Field::smooth (AuxField* slave)
-// ---------------------------------------------------------------------------
-// Smooth slave field along element boundaries using *this, with
-// mass-average smoothing.  The operation is equivalent to finding
+/// --------------------------------------------------------------------------
+/// Smooth slave field along element boundaries using *this, with
+/// mass-average smoothing.
+//  The operation is equivalent to finding
 //
 //            -1
 //   {u} = [M]   Sum [M] {u}  ,
@@ -287,7 +200,7 @@ Field& Field::smooth (AuxField* slave)
 // where g ==> global, e ==> elemental, [M] ==> mass matrix, and the
 // summation is a "direct stiffness summation", or matrix assembly.
 //
-// If slave == 0, smooth this -> data.
+/// If slave == 0, smooth this -> data.
 // ---------------------------------------------------------------------------
 {
   const int_t      nel     = Geometry::nElmt();
@@ -325,10 +238,10 @@ Field& Field::smooth (AuxField* slave)
 
 void Field::smooth (const int_t nZ ,
 		    real_t*     tgt) const
-// ---------------------------------------------------------------------------
-// Smooth tgt field along element boundaries using *this, with
-// mass-average smoothing.  Tgt is assumed to be arranged by planes, with
-// planeSize() offset between each plane of data.
+/// --------------------------------------------------------------------------
+/// Smooth tgt field along element boundaries using *this, with
+/// mass-average smoothing.  Tgt is assumed to be arranged by planes, with
+/// planeSize() offset between each plane of data.
 // ---------------------------------------------------------------------------
 {
   const int_t      nel     = Geometry::nElmt();
@@ -364,13 +277,13 @@ void Field::smooth (const int_t nZ ,
 
 
 real_t Field::scalarFlux (const Field* C)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute edge-normal gradient flux of field C on all "wall" group
-// boundaries.
-//
-// This only has to be done on the zero (mean) Fourier mode.
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute edge-normal gradient flux of field C on all "wall" group
+/// boundaries.
+///
+/// This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = C -> _bsys -> BCs (0);
@@ -386,13 +299,13 @@ real_t Field::scalarFlux (const Field* C)
 
 
 Vector Field::normTraction (const Field* P)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute normal tractive forces on all WALL boundaries, taking P to be
-// the pressure field.
-//
-// This only has to be done on the zero (mean) Fourier mode.
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute normal tractive forces on all WALL boundaries, taking P to
+/// be the pressure field.
+///
+/// This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
@@ -414,24 +327,25 @@ Vector Field::normTraction (const Field* P)
 Vector Field::tangTraction (const Field* U,
 			    const Field* V,
 			    const Field* W)
-// ---------------------------------------------------------------------------
-// Static member function.
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute (2D) tangential viscous tractive forces on all WALL
+/// boundaries, treating U & V as first and second velocity
+/// components, respectively.
 //
-// Compute (2D) tangential viscous tractive forces on all WALL boundaries,
-// treating U & V as first and second velocity components, respectively.
-//
-// Compute viscous tractive forces on wall from
+//  Compute viscous tractive forces on wall from
 //
 //  t_i  = - T_ij  n_j       (minus sign for force exerted BY fluid ON wall),
 //
-// where
+//  where
 //
 //  T_ij = viscous stress tensor (here in Cartesian coords)
 //                          dU_i    dU_j
 //       = RHO * KINVIS * ( ----  + ---- ) .
 //                          dx_j    dx_i
 //
-// This only has to be done on the zero (mean) Fourier mode.
+/// This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
@@ -457,13 +371,13 @@ Vector Field::tangTraction (const Field* U,
 void Field::normTractionV (real_t*      fx,
 			   real_t*      fy,
 			   const Field* P )
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute normal tractive forces at each z location on wall
-// boundaries.  Fx & Fy are assumed to contain sufficient (nZProc)
-// storage and to be zero on entry.  P could be in physical space or
-// Fourier transformed.
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute normal tractive forces at each z location on wall
+/// boundaries.  Fx & Fy are assumed to contain sufficient (nZProc)
+/// storage and to be zero on entry.  P could be in physical space or
+/// Fourier transformed.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC    = P -> _bsys -> BCs (0);
@@ -492,13 +406,13 @@ void Field::tangTractionV (real_t*      fx,
 			   const Field* U ,
 			   const Field* V ,
 			   const Field* W )
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute tangential tractive forces at each z location on wall
-// boundaries.  Fx, fy, fz assumed to contain sufficient storage and
-// be zero on entry.  U, V, W could be in physical space or Fourier
-// transformed.
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute tangential tractive forces at each z location on wall
+/// boundaries.  Fx, fy, fz assumed to contain sufficient storage and
+/// be zero on entry.  U, V, W could be in physical space or Fourier
+/// transformed.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
@@ -535,14 +449,15 @@ void Field::traction (real_t*      n, // Normal/pressure
 		      const Field* u ,
 		      const Field* v , 
 		      const Field* w )
-// ---------------------------------------------------------------------------
-// Static member function. Compute the pressure and viscous tractions
-// on the "wall" surfaces (the number of which is given as input
-// parameter N). All computations are carried out on
-// Fourier-transformed variables. Input parameter M is the
-// (exchange-padded) length of each variable's wall-tagged storage,
-// per data plane.
-// ---------------------------------------------------------------------------
+/// --------------------------------------------------------------------------
+/// Static member function.
+///
+/// Compute the pressure and viscous tractions on the "wall" surfaces
+/// (the number of which is given as input parameter N). All
+/// computations are carried out on Fourier-transformed
+/// variables. Input parameter M is the (exchange-padded) length of
+/// each variable's wall-tagged storage, per data plane.  //
+/// ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC    = u -> _bsys -> BCs(0);
   const int_t              np     = Geometry::nP();
@@ -593,46 +508,48 @@ void Field::traction (real_t*      n, // Normal/pressure
 
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
-// ---------------------------------------------------------------------------
-// This is the central routine for which the Field class was created.
+/// --------------------------------------------------------------------------
+/// This is the central routine for which the Field class was created.
 //
-// Problem for solution is
+//  Problem for solution is
 //                                          
 //                      div grad u - lambda^2 u = f,
 //
-// which is set up in discrete form as
+//  which is set up in discrete form as
 //
 //                       H v = - M f - H g + <h, w>.
 //                                      c
 //
-// This routine creates the RHS vector from the input forcing field f
-// and the Field's boundary conditions g (essential) & h (natural).
-// Forcing field f's data area is overwritten/destroyed during
-// processing.
-//
-// Field data storage on input is assumed to be the existing
-// estimate. This is used for iterative solutions, and for
-// convective-type BCs.
-//
-// For DIRECT (Cholesky) solution:
-//
-//   The RHS vector is constructed with length of the number of
-//   element-edge nodes in the problem (n_gid).  The first n_solve
-//   values contain forcing terms for the free (non essential-BC)
-//   nodes in the problem, derived from the forcing field and the
-//   natural BCs "h", while the remaining values get loaded from
-//   essential BC values, "g".
-//
-// For JACPCG (iterative) solution:
-//
-//   All vectors are ordered with globally-numbered (element-
-//   boundary) nodes first, followed by all element-internal nodes.
-//   The zeroing operation which occurs after each application of the
-//   Helmholtz operator serves to apply the essential BCs, which are
-//   zero during the iteration (see this file's header).
-//
-//   The notation under JACPCG follows that used in Fig 2.5 of Barrett
-//   et al., "Templates for the Solution of Linear Systems", netlib.
+/// This routine creates the RHS vector from the input forcing field f
+/// and the Field's boundary conditions g (essential) & h (natural).
+/// Forcing field f's data area is overwritten/destroyed during
+/// processing.
+///
+/// Field data storage on input is assumed to be the existing
+/// estimate. This is used for iterative solutions, and for
+/// convective-type BCs.
+///
+/// For DIRECT (Cholesky) solution:
+///
+///   The RHS vector is constructed with length of the number of
+///   element-edge nodes in the problem (n_gid).  The first n_solve
+///   values contain forcing terms for the free (non essential-BC)
+///   nodes in the problem, derived from the forcing field and the
+///   natural BCs "h", while the remaining values get loaded from
+///   essential BC values, "g".
+///
+/// For JACPCG (iterative) solution:
+///
+///   All vectors are ordered with globally-numbered (element-
+///   boundary) nodes first, followed by all element-internal nodes.
+///   The zeroing operation which occurs after each application of the
+///   Helmholtz operator serves to apply the essential BCs, which are
+///   zero during the iteration (see this file's header).
+///
+///   The notation under JACPCG follows that used in Fig 2.5 of Barrett
+///   et al., "Templates for the Solution of Linear Systems", netlib.
+///   Iteration stops when ||r|| = ||Ax - b|| < TOL_REL^2 * ||b|
+///   (Criterion 2 in Barrett et al.).
 //   ---------------------------------------------------------------------------
 {
   const char  routine[] = "Field::solve";
@@ -814,12 +731,12 @@ void Field::constrain (real_t*          force  ,
 		       const real_t*    esstlbc,
 		       const NumberSys* N      ,
 		       real_t*          work   ) const
-// ---------------------------------------------------------------------------
-// Replace f's data with constrained weak form of forcing: - M f - H g.
-// On input, essential BC values (g) have been loaded into globally-numbered
-// esstlbc, other values are zero.
-//
-// Input vector work should be 4*Geometry::nTotElmt() long.
+/// --------------------------------------------------------------------------
+/// Replace f's data with constrained weak form of forcing: - M f - H g.
+/// On input, essential BC values (g) have been loaded into globally-numbered
+/// esstlbc, other values are zero.
+///
+/// Input vector work should be 4*Geometry::nTotElmt() long.
 // ---------------------------------------------------------------------------
 {
   const int_t       np    = Geometry::nP();
@@ -857,12 +774,12 @@ void Field::HelmholtzOperator (const real_t* x      ,
 			       const real_t  betak2 ,
 			       const int_t   mode   ,
 			       real_t*       work   ) const
-// ---------------------------------------------------------------------------
-// Discrete 2D global Helmholtz operator which takes the vector x into
-// vector y, including direct stiffness summation.  Vectors x & y have 
-// global ordering: that is, with nglobal (element edge nodes, with
-// redundancy removed) coming first, followed by nel blocks of element-
-// internal nodes.
+/// --------------------------------------------------------------------------
+/// Discrete 2D global Helmholtz operator which takes the vector x into
+/// vector y, including direct stiffness summation.  Vectors x & y have 
+/// global ordering: that is, with nglobal (element edge nodes, with
+/// redundancy removed) coming first, followed by nel blocks of element-
+/// internal nodes.
 //
 #if defined (_VECTOR_ARCH)
 // Vector work must have length 3 * Geometry::nPlane().
@@ -870,9 +787,9 @@ void Field::HelmholtzOperator (const real_t* x      ,
 // Vector work must have length 4 * Geometry::nTotElmt().
 #endif
 //
-// Note that we multiply the input value of mode by BETA in order to
-// pick up the correct mode-dependent set of (axis) BCs for
-// cylindrical-coordinate problems.
+/// Note that we multiply the input value of mode by BETA in order to
+/// pick up the correct mode-dependent set of (axis) BCs for
+/// cylindrical-coordinate problems.
 // ---------------------------------------------------------------------------
 {
   const int_t      np      = Geometry::nP();
@@ -949,26 +866,26 @@ void Field::buildRHS (real_t*                  force ,
 		      const vector<Boundary*>& bnd   ,
 		      const NumberSys*         N     ,
 		      real_t*                  work  ) const
-// ---------------------------------------------------------------------------
-// Build RHS for direct or iterative solution.
+/// --------------------------------------------------------------------------
+/// Build RHS for direct or iterative solution.
 //
-// Iterative solution is flagged by presence of RHSint, a pointer to
-// element-internal node storage.  If RHSint is zero, then hbi, a vector
-// of pointers to element interior/exterior coupling matrices, must be 
-// non-zero.
+/// Iterative solution is flagged by presence of RHSint, a pointer to
+/// element-internal node storage.  If RHSint is zero, then hbi, a vector
+/// of pointers to element interior/exterior coupling matrices, must be 
+/// non-zero.
 //
-// Compute RHS vector for direct solution of Helmholtz problem as
+//  Compute RHS vector for direct solution of Helmholtz problem as
 //
 //                      - M f - H g + <h, w>.
 // 
-// On input, force contains a plane of
+//  On input, force contains a plane of
 //
 //                          - M f - H g
 //
-// in element (row-major) form, and bc contains the line of BC data values
-// for this plane of data: only natural BCs are used in formation of <h, w>.
+//  in element (row-major) form, and bc contains the line of BC data values
+//  for this plane of data: only natural BCs are used in formation of <h, w>.
 //
-// Input vector work should be Geometry::nTotElmt() long.
+/// Input vector work should be Geometry::nTotElmt() long.
 // ---------------------------------------------------------------------------
 {
   const int_t              np      = Geometry::nP();
@@ -1011,10 +928,10 @@ void Field::buildRHS (real_t*                  force ,
 void Field::local2global (const real_t*    src,
 			  real_t*          tgt,
 			  const NumberSys* N  ) const
-// ---------------------------------------------------------------------------
-// Load a plane of data (src) into globally-numbered tgt, with element-
-// boundary values in the first N -> nGlobal() places, followed by
-// element-internal locations in emap ordering.
+/// --------------------------------------------------------------------------
+/// Load a plane of data (src) into globally-numbered tgt, with element-
+/// boundary values in the first N -> nGlobal() places, followed by
+/// element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
   const int_t      nel  = Geometry::nElmt();
@@ -1033,10 +950,10 @@ void Field::local2global (const real_t*    src,
 void Field::global2local (const real_t*    src,
 			  real_t*          tgt,
 			  const NumberSys* N  ) const
-// ---------------------------------------------------------------------------
-// Load a plane of data (tgt) from src, which has globally-numbered
-// (element- boundary) values in the first nglobal places, followed by
-// element-internal locations in emap ordering.
+/// --------------------------------------------------------------------------
+/// Load a plane of data (tgt) from src, which has globally-numbered
+/// (element- boundary) values in the first nglobal places, followed by
+/// element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
   const int_t            nel  = Geometry::nElmt();
@@ -1055,10 +972,10 @@ void Field::global2local (const real_t*    src,
 void Field::local2globalSum (const real_t*    src,
 			     real_t*          tgt,
 			     const NumberSys* N  ) const
-// ---------------------------------------------------------------------------
-// Direct stiffness sum a plane of data (src) into globally-numbered
-// tgt, with element-boundary values in the first N -> nGlobal()
-// places, followed by element-internal locations in emap ordering.
+/// --------------------------------------------------------------------------
+/// Direct stiffness sum a plane of data (src) into globally-numbered
+/// tgt, with element-boundary values in the first N -> nGlobal()
+/// places, followed by element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
   const int_t      nel  = Geometry::nElmt();
@@ -1078,14 +995,14 @@ void Field::getEssential (const real_t*            src,
 			  real_t*                  tgt,
 			  const vector<Boundary*>& bnd,
 			  const NumberSys*         N  ) const
-// ---------------------------------------------------------------------------
-// On input, src contains a line of BC values for the current data plane.
-// Scatter current values of essential BCs into globally-numbered tgt.
-//
-// The construction of the essential BCs has to account for cases
-// where element corners may touch the domain boundary but do not have
-// an edge along a boundary.  This is done by working with a
-// globally-numbered vector.
+/// --------------------------------------------------------------------------
+/// On input, src contains a line of BC values for the current data plane.
+/// Scatter current values of essential BCs into globally-numbered tgt.
+///
+/// The construction of the essential BCs has to account for cases
+/// where element corners may touch the domain boundary but do not have
+/// an edge along a boundary.  This is done by working with a
+/// globally-numbered vector.
 // ---------------------------------------------------------------------------
 {
   const int_t              np = Geometry::nP();
@@ -1105,9 +1022,9 @@ void Field::getEssential (const real_t*            src,
 void Field::setEssential (const real_t*    src,
 			  real_t*          tgt,
 			  const NumberSys* N  )
-// ---------------------------------------------------------------------------
-// Gather globally-numbered src into essential BC nodes of current
-// data plane.
+/// --------------------------------------------------------------------------
+/// Gather globally-numbered src into essential BC nodes of current
+/// data plane.
 // ---------------------------------------------------------------------------
 {
   const int_t    nel  = Geometry::nElmt();
@@ -1126,23 +1043,24 @@ void Field::setEssential (const real_t*    src,
 void Field::coupleBCs (Field*      v  ,
 		       Field*      w  ,
 		       const int_t dir)
-// ---------------------------------------------------------------------------
-// Couple/uncouple boundary condition values for the radial and
-// azimuthal velocity fields in cylindrical coordinates, depending on
-// indicated direction.  This action is required due to the coupling
-// in the viscous terms of the N--S equations in cylindrical coords.
+/// --------------------------------------------------------------------------
+/// Couple/uncouple boundary condition values for the radial and
+/// azimuthal velocity fields in cylindrical coordinates, depending on
+/// indicated direction.  This action is required due to the coupling
+/// in the viscous terms of the N--S equations in cylindrical coords.
+///
+/// dir == FORWARD
+///
+/// +         v~ <-- v + i w
+/// +         w~ <-- v - i w
+///  
+/// dir == INVERSE
+///
+/// +         v  <-- 0.5   * (v~ + w~)
+/// +         w  <-- 0.5 i * (w~ - v~)
 //
-// dir == +1
-// ---------
-//           v~ <-- v + i w
-//           w~ <-- v - i w
-// dir == -1
-// ---------
-//           v  <-- 0.5   * (v~ + w~)
-//           w  <-- 0.5 i * (w~ - v~)
-//
-// Since there is no coupling for the viscous terms in the 2D
-// equation, do nothing for the zeroth Fourier mode.
+/// Since there is no coupling for the viscous terms in the 2D
+/// equation, do nothing for the zeroth Fourier mode.
 // ---------------------------------------------------------------------------
 {
   if (Geometry::nDim() < 3) return;
@@ -1203,16 +1121,16 @@ void Field::coupleBCs (Field*      v  ,
 real_t Field::modeConstant (const char   name,
 			    const int_t  mode,
 			    const real_t beta)
-// ---------------------------------------------------------------------------
-// For cylindrical coordinates with 3D, the radial and azimuthal fields
-// are coupled before solution of the viscous step.  This means that
-// the Fourier constant used for solution may vary from that which
-// applies to the axial component.
-//
-// For Field v~, betak -> betak + 1 while for w~, betak -> betak - 1.
-//
-// For the uncoupled Fields v, w solved for the zeroth Fourier mode,
-// the "Fourier" constant in the Helmholtz equations is 1.
+/// --------------------------------------------------------------------------
+/// For cylindrical coordinates with 3D, the radial and azimuthal fields
+/// are coupled before solution of the viscous step.  This means that
+/// the Fourier constant used for solution may vary from that which
+/// applies to the axial component.
+///
+/// For Field v~, betak -> betak + 1 while for w~, betak -> betak - 1.
+///
+/// For the uncoupled Fields v, w solved for the zeroth Fourier mode,
+/// the "Fourier" constant in the Helmholtz equations is 1.
 // ---------------------------------------------------------------------------
 {
   if (Geometry::system() == Geometry::Cartesian || 
@@ -1231,11 +1149,11 @@ real_t Field::modeConstant (const char   name,
 void Field::overwriteForGroup (const char*     name,
 			       const AuxField* src ,
 			       AuxField*       tgt )
-// ---------------------------------------------------------------------------
-// On a named boundary group (e.g. "axis"), insert field data from src
-// into field data of tgt.  Could use this for inserting values
-// obtained in src via l'Hopital's rule into those in tgt (e.g. on
-// axis!).
+/// --------------------------------------------------------------------------
+/// On a named boundary group (e.g. "axis"), insert field data from src
+/// into field data of tgt.  Could use this for inserting values
+/// obtained in src via l'Hopital's rule into those in tgt (e.g. on
+/// axis!).
 // ---------------------------------------------------------------------------
 {
   const int_t              nz = Geometry::nZProc();

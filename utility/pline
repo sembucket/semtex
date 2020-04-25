@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 #
 # pline: generate a uniformly-spaced line of points from one position
 # to another.
 #
 # usage: pline n x1 y1 z1 x2 y2 z2
 #
-# $Id$
+# $Id: pline,v 9.1 2019/05/30 06:36:12 hmb Exp $
 
 case $# in
 	7) ;;

@@ -9,7 +9,7 @@
 // where
 // -i <num> ... number of new GLL points on [-1, 1]
 //
-// $Id$
+// $Id: lagpro.C,v 9.1 2019/05/30 06:36:07 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

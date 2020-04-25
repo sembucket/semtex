@@ -4,7 +4,7 @@
  * NB:  It is assumed that this operation is vectorizable, i.e. that there
  * are no repeated indices in the indirection vector y --- y is a permutator.
  *
- * $Id$
+ * $Id: xscatr.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

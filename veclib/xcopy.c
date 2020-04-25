@@ -3,7 +3,7 @@
  *
  * Use memcpy for cases where both skips are unity.
  *
- * $Id$
+ * $Id: xcopy.c,v 9.1 2019/05/30 06:36:13 hmb Exp $
  *****************************************************************************/
 
 #include <string.h>

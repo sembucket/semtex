@@ -1,11 +1,14 @@
-# Laplace problem on unit square, with homogeneous essential BCs
-# on lower, left- & right-hand edges and u(x) = sin(2PIx) on upper edge.
-#
+# Laplace problem on unit square, with homogeneous essential BCs on
+# lower, left- & right-hand edges and u(x) = sin(2PIx) on upper edge.
 # Analytical solution is c(x,y) = sin(2PIx)*sinh(2PIy)/sinh(2PI).
+# Note that elliptic reponds to "Exact" and (if present) "Forcing"
+# strings in computing and examining results.  We can also use compare
+# to independently generate the analytical solution for regression
+# testing.
 
 <USER>
-	Geometry 2D-Cartesian
 	Exact    sin(TWOPI*x)*sinh(TWOPI*y)/sinh(TWOPI)
+	c =      sin(TWOPI*x)*sinh(TWOPI*y)/sinh(TWOPI)	
 </USER>
 
 <FIELDS>

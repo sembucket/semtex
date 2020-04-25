@@ -2,7 +2,7 @@
  * DEFAULTS.H:  default parameter initializations for initial.y.
  * All parameters are now in a single table, everything is double precision.
  *
- * $Id$
+ * $Id: defaults.h,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>
@@ -44,10 +44,6 @@ static struct {
   "C_SMAG"      ,   0.1    ,	/* -- Smagorinsky's constant (RNG value). */
   "LAMBDA_M"    ,   2.0    ,    /* -- Assumed difference in mesh lengths. */
 
-  "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
-  "FFY"         ,   0.0    ,	/* -- y component.                        */
-  "FFZ"         ,   0.0    ,	/* -- z component.                        */
-
   "X_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in x.        */
   "Y_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in y.        */
 
@@ -60,14 +56,11 @@ static struct {
   "SVV_MZ"      ,  -1      ,    /* -- SVV Fourier mode start, < (N_Z/2).  */
   "SVV_EPSZ"    ,   0.0    ,    /* -- SVV Fourier Eps, as for SEM.        */
   
-  "PROJ_STAB"   ,   0.0    ,    /* -- Paul Fischer "stabilisation" alpha  */
-
   "UODelta"     ,   0.05   ,    /* -- Outflow boundary velocity scale.    */
 
   /* -- Option switches. */
 
   "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */
-  "TBCS"        ,   0   ,	/* -- Select time-varying BCs.            */
   "CYLINDRICAL" ,   0   ,	/* -- Select cylindrical coordinates.     */
   "VERBOSE"     ,   0   ,	/* -- Set verbose output.                 */
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
@@ -76,6 +69,7 @@ static struct {
   "N_PHASE"     ,   0   ,       /* -- Toggle phase averaging.             */
   "RANSEED"     ,   0   ,       /* -- Set wall-clock random seeding.      */
   "CENT_BUOY"   ,   0   ,       /* -- Set centrifugal buoyancy on/off.    */
+  "ADVECTION"   ,   1   ,       /* -- Alternating skew-symmetric scheme.  */
 
   
   /* -- Default integer values. */

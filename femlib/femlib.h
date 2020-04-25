@@ -3,14 +3,17 @@
 ///////////////////////////////////////////////////////////////////////////////
 // C++ function prototypes for routines in library libfem.a
 //
-// $Id$
+// $Id: femlib.h,v 9.2 2019/05/30 07:58:54 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
 #include <cmath>
 
 #include "cfemdef.h"
+
+#if 0
 #include "polylib.h"
+#endif
 
 extern "C" {
 
@@ -344,7 +347,7 @@ public:
     { dDFTr (data, nz, np, sign); }
 
   static void preft  (const int_t& n, int_t& nfax, int_t* ifax,
-		      real_t* trig) 
+		      real_t* trig)
     { F77NAME(dpreft) (n, nfax, ifax, trig); }
   static void mrcft  (real_t* v, const int_t& np, const int_t& nz,
 		      real_t* w, const int_t& nfx, int_t* ifx,

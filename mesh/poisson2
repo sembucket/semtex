@@ -15,6 +15,7 @@
 <USER>
         Forcing -16.
         Exact    1.-4.*y*y
+        c =      1.-4.*y*y	
 </USER>
 
 <TOKENS>

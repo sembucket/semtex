@@ -2,7 +2,10 @@
 #define TENSORCALCS_H
 
 /*****************************************************************************
- *          PROTOTYPES FOR 3^i TENSOR & VECTOR CALCULATIONS
+ * prototypes for 3^i tensor & vector calculations
+ *
+ * @file utility/tensorcalcs.h
+ * @ingroup group_utility
  *****************************************************************************/
 
 #ifdef __cplusplus

@@ -14,7 +14,7 @@
 // 4.  mxm computes matrix-matrix product for contiguously-stored row-major
 //     matrices; it aliases calls to BLAS3 dgemm & sgemm.  Conforming assumed.
 //
-// $Id$
+// $Id: blas.h,v 9.1 2019/05/30 06:36:13 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cfemdef.h>

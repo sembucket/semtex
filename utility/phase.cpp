@@ -1,8 +1,26 @@
-///////////////////////////////////////////////////////////////////////////////
-// phase.cpp: do operations on 3D data file in phase/Fourier space.
-//
-// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
-//
+/*****************************************************************************
+ * phase: utility to perform operations on 3D data file in
+ * phase/Fourier space.
+ *
+ * Usage
+ * -----
+ * phase [options] [file]
+ * options:
+ * -h       ... print this message.
+ * -c       ... perform complex conjugation.
+ * -f       ... data are already Fourier transformed (do not transform).
+ * -z       ... take mode zero as complex (e.g. it is an eigenmode).
+ * -r       ... enforce reflection symmetry of velocity & pressure data.
+ * -s <num> ... shift data a fraction <num> of the fundamental wavelength.
+ * 
+ * If file is not present, read from standard input.  Write to
+ * standard output.
+ *
+ * @file utility/phase.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2002 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,23 +37,9 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// USAGE
-// -----
-// phase [options] [file]
-// options:
-// -h       ... print this message.
-// -c       ... perform complex conjugation.
-// -f       ... data are already Fourier transformed (do not transform).
-// -z       ... take mode zero as complex (e.g. it is an eigenmode).
-// -r       ... enforce reflection symmetry of velocity & pressure data.
-// -s <num> ... shift data a fraction <num> of the fundamental wavelength.
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: phase.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

@@ -1,10 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////
-// calc.cpp: a basic calculator using the function parser.
-//
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
-//
-// Usage: calc [-h] [file]
-//
+/*****************************************************************************
+ * calc: a simple calculator based on the femlib function parser.
+ *
+ * Usage
+ * -----
+ * calc [-h] [file]
+ *
+ * @file utility/calc.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 1994 <--> $Date: 2020/01/06 04:35:44 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -24,7 +28,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$"; 
+static char RCS[] = "$Id: calc.cpp,v 9.2 2020/01/06 04:35:44 hmb Exp $"; 
 
 #include <cstdio>
 #include <cstdlib>
@@ -79,10 +83,11 @@ static void getargs (int       argc ,
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
+      cerr << "-- Preset internal variables:"  << endl;
+      yy_show ();
+      cerr << endl;
       cerr << "-- Calculator operators, functions and procedures:" << endl;
       yy_help ();
-      cerr << endl << "-- Preset internal variables:"  << endl;
-      yy_show ();
       exit (EXIT_SUCCESS);
       break;
     default:

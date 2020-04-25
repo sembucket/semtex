@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // bsys.C: BoundarySys class functions.
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1999 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
 //
 // The information to be returned by class functions are the global
 // numbering scheme and vector of Boundary*'s for a given Field and
@@ -34,7 +34,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: bsys.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
 
 #include <sem.h>
 

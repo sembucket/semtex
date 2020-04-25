@@ -1,7 +1,7 @@
 ##############################################################################
 # Remake finite element routine library (libfem.a).  Gnu make required.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:05 hmb Exp $
 ##############################################################################
 
 SEM    = ..
@@ -24,11 +24,11 @@ endif
 
 INITIAL    = initial
 
-OPERATORS  = polyops  operators  matops  polylib  filter
+OPERATORS  = polyops  polylib  operators  matops  filter
 
-FFT	   = temfftd  canfft  fourier
+FFT	   = temfftd  canfft   fourier
 
-MEMORY     = mapping  family  message
+MEMORY     = mapping  family   message
 
 IMPORT     = netlib
 

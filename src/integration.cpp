@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integration.C:  supply coefficients for discrete time integration schemes.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // Maximum time order supported is 3 (4 for implicit Adams--Moulton methods).
 // Coefficients for all schemes can be found in Gear's book, "Numerical
@@ -26,7 +26,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: integration.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 

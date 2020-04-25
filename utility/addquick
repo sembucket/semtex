@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# $Id$
+# $Id: addquick,v 9.1 2019/05/30 06:36:12 hmb Exp $
 #
 # This is an example of how to use awk to do a simple addition of a
 # new field variable, in this case perturbation KE from a 2D avg file.

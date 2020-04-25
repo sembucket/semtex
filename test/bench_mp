@@ -5,7 +5,7 @@
 # NB: dns_mp must be compiled with ALIAS=1 as well as MPI=1 so that
 # 1-CPU job computes same answer as n-CPU jobs.
 #
-# $Id$
+# $Id: bench_mp,v 9.1 2019/05/30 06:36:11 hmb Exp $
 
 case $# in
 0) echo "usage: bench_mp new_code_version"; exit 0

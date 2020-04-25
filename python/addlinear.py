@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Field file filter by HMB, patterned after an example from TA. Feb 2017.

@@ -15,7 +15,7 @@
 	D_T         = 0.0001
 	Re          = 100.0
 	KINVIS      = 1/Re
-	FFX         = 10.0
+
 
 	CHKPOINT    = 1
         AVERAGE     = 0
@@ -26,6 +26,10 @@
 	IO_HIS      = 10
 
 </TOKENS>
+
+<FORCE>
+	CONST_X         = 10.0
+</FORCE>
 
 <HISTORY NUMBER=1>
 	1	0.1	0.1	0

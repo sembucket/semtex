@@ -1,15 +1,19 @@
-//////////////////////////////////////////////////////////////////////////////
-// traction.cpp: Compute tractions on wall boundaries from field file.
-//
-// Copyright (c) 2006 <--> $Date$, Hugh Blackburn
-//
-// USAGE:
-// -----
-// traction session [file]
-//
-// Essentially this carries out the same computation as is done during
-// execution of dns, but as a standalone utility.
-//
+/*****************************************************************************
+ * traction: utility to compute tractions on wall boundaries from field file.
+ *
+ * Usage
+ * -----
+ * traction session [file]
+ *
+ * Synopsis
+ * --------
+ * Essentially this carries out the same computation as is done during
+ * execution of dns, but as a standalone utility.
+ *
+ * @file utility/traction.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2006 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -29,7 +33,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: traction.cpp,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <sem.h>
 

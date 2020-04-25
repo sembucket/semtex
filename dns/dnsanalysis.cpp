@@ -2,7 +2,7 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:03 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -23,7 +23,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: dnsanalysis.cpp,v 9.1 2019/05/30 06:36:03 hmb Exp $";
  
 #include <dns.h>
 

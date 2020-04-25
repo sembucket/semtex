@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // condition.cpp: functions used to evaluate & apply BCs.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
 //
 // All classes inherit the (semi-abstract) base class Condition.
 // Owing to the different behaviour of essential and natural BCs, a
@@ -55,7 +55,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: condition.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
 
 #include <sem.h>
 

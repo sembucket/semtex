@@ -4,7 +4,7 @@
  * m is the order of the polynomial and its coefficients are stored in c in
  * descending order: c[0] is the constant term.
  *
- * $Id$
+ * $Id: xvpoly.c,v 9.1 2019/05/30 06:36:14 hmb Exp $
  *****************************************************************************/
 
 #include <cfemdef.h>

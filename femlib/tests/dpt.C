@@ -15,7 +15,7 @@
 // Inverse transform: the N values are assumed to be spectral
 // coefficients; compute the nodal values.
 //
-// $Id$
+// $Id: dpt.C,v 9.1 2019/05/30 06:36:06 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>

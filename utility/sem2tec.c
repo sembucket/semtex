@@ -1,11 +1,15 @@
 /*****************************************************************************
- * sem2tec: convert a semtex field file to AMTEC Tecplot format.
+ * sem2tec: utility to convert a semtex field file to AMTEC Tecplot format.
  *
- * Copyright (c) 1990 <--> $Date$, 
+ * Usage
+ * -----
+ * sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
+ *
+ * @file utility/sem2tec.c
+ * @ingroup group_utility
+ * **************************************************************************/
+/* Copyright (c) 1990 <--> $Date: 2020/01/06 04:35:45 $, 
  *   Ron Henderson, Hugh Blackburn
- *
- * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
- *
  * --
  * This file is part of Semtex.
  * 
@@ -25,12 +29,13 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: sem2tec.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "cfemdef.h"
 #include "cveclib.h"
@@ -43,6 +48,7 @@ static char usage[] =
   "options:\n"
   "-h       ... print this message\n"
   "-o file  ... write output to the named file instead of running preplot\n" 
+  "-c       ... if nz > 1, perform Cylindrical to Cartesian mesh transformation\n"
   "-m file  ... read the mesh from the named file (instead of stdin)\n"
   "-d <num> ... extract dump <num> from file\n"
   "-n <num> ... evaluate the solution on an evenly-spaced mesh with N X N\n"
@@ -55,7 +61,7 @@ static FILE    *fp_fld = 0,          /* default input files */
 static char    *tecfile;             /* output file name */
 
 static int     nr, ns, nz, nel, nfields;
-static int     nzp = 0, preplot_it = 1, np = 1, dump = 1;
+static int     nzp = 0, preplot_it = 1, np = 1, dump = 1,  cylindrical=0;;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
@@ -80,8 +86,9 @@ int main (int    argc,
   FILE *fp, *fp_tec;
   
   fp_msh = stdin;
+   strcpy(fname, "tmp.XXXXXX");
 
-  if ((fp = fopen (tmpnam (fname),"w+")) == (FILE*) NULL) {
+ if ((fp = fdopen(mkstemp(fname), "w+")) == (FILE *) NULL) {
     fprintf (stderr, "sem2tec: unable to open a temporary file\n");
     exit    (EXIT_FAILURE);
   }
@@ -104,6 +111,7 @@ int main (int    argc,
     while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
     fclose (fp_tec);
     fclose (fp);
+     remove  (fname);
   }
 
   return EXIT_SUCCESS;
@@ -161,6 +169,9 @@ static void parse_args (int    argc,
       case 'w':
 	nzp = 1;
 	break;
+	 case 'c':
+        cylindrical = 1;
+        break;
       default:
 	fprintf(stderr, "sem2tec: unknown option -- %c\n", c);
 	break;
@@ -442,7 +453,7 @@ static void write_tec (FILE *fp)
 {
   register int i, j, k, m;
   const int    nrns = nr * ns, nplane = nr * ns * nel;
-
+ 
   fprintf (fp, "VARIABLES = \"X\" \"Y\" ");
   if (z) fprintf (fp, "\"Z\" ");
 #if 0				/* Old code version. */
@@ -458,8 +469,21 @@ static void write_tec (FILE *fp)
     fprintf (fp, " F=POINT\n");
     for (m = 0; m < nzp; m++) {
       for (i = 0; i < nrns; i++) {
+      		if (cylindrical && nzp >1) 
+	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i],
+		  y[k*nrns + i] * sin(z[m%nzp]));
+	else
+	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i],y[k*nrns + i]);
+#if 0
 	fprintf (fp, "%#14.7g %#14.7g ", x[k*nrns + i], y[k*nrns + i]);
 	if (z) fprintf (fp, "%#14.7g ",  z[m]);
+#endif
+	if (z) {
+	if (cylindrical)
+	    fprintf(fp, "%#14.7g ", y[k*nrns+i]*cos(z[m%nzp]));
+	  else
+	    fprintf(fp, "%#14.7g ", z[m]);
+	    }
 	for (j = 0; j < nfields; j++)
 	  fprintf(fp, "%#14.7g ", data[j][m*nplane + k*nrns + i]);
 	fprintf(fp, "\n");

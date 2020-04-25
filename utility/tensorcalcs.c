@@ -1,9 +1,9 @@
 /*****************************************************************************
- *                  3^i TENSOR & VECTOR CALCULATIONS
+ * Routines for 3^i tensor & vector calculations.
  *
- * Copyright (c) 1992 <--> $Date$, Hugh Blackburn
-
- * NB: In all the following calculations, the 3x3 tensor which is used as
+ * Synopsis
+ * --------
+ * In all the following calculations, the 3x3 tensor which is used as
  * input is supplied as a 1-D array of double. It is assumed that the tensor
  * is supplied in column-major order (as it would be stored in FORTRAN):
  *
@@ -19,6 +19,10 @@
  * and if the operation has special significance for the velocity gradient
  * tensor, it is called VG.
  *
+ * @file utility/tensorcalcs.c
+ * @ingroup group_utility
+ *****************************************************************************/
+/* Copyright (c) 1992 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn
  * --
  * This file is part of Semtex.
  * 
@@ -39,7 +43,7 @@
  *****************************************************************************/
 
 static char
-RCSid[] = "$Id$";
+RCSid[] = "$Id: tensorcalcs.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <stdio.h>	
 #include <math.h>

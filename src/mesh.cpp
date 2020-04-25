@@ -2,7 +2,7 @@
 // mesh.C: read information from a FEML stream, provide
 // facilities for generation of mesh knots and initial connectivity.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // Example/required parts of a FEML file:
 //
@@ -95,7 +95,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: mesh.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <cstdarg>
 #include <cstdlib>

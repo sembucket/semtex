@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 static char
-RCSid[] = "$Id$";
+RCSid[] = "$Id: testpoly.c,v 9.1 2019/05/30 06:36:07 hmb Exp $";
 
 #include <stdio.h>
 #include <math.h>

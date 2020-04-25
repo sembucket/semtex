@@ -1,19 +1,24 @@
 /*****************************************************************************
- * repeatz.c: read a field file, and output the number of repetitions
- * in the z direction indicated on the command line.  Field must be
- * binary format.  By default, output the original file, no repeats.
- * Adust Nz and Beta in header as appropriate.
+ * repeatz: utility to read a field file, and output the number of
+ * repetitions in the z direction indicated on the command line.
+ *
+ * Usage
+ * -----
+ * repeatz [-h] [-n <rep>] [-f] [input[.fld]
+ *
+ * Synopsis
+ * --------
+ * Field must be binary format.  By default, output the original file,
+ * no repeats.  Adust Nz and Beta in header as appropriate.
  *
  * NB: Nz must be adjusted so it has prime factors of 2,3,5 to ensure
  * the resulting field can be Fourier transformed in z.  This 'feature'
  * can be defeated with command-line flag -f.
  *
- * Copyright (c) 2002 <--> $Date$, Hugh Blackburn.
- *
- * USAGE
- * -----
- * repeatz [-h] [-n <rep>] [-f] [input[.fld]
- *
+ * @file utility/repeatz.c
+ * @ingroup group_utility
+ * **************************************************************************/
+/* Copyright (c) 2002 <--> $Date: 2020/01/06 04:35:45 $, Hugh Blackburn.
  * --
  * This file is part of Semtex.
  * 
@@ -33,7 +38,7 @@
  * 02110-1301 USA
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: repeatz.c,v 9.2 2020/01/06 04:35:45 hmb Exp $";
 
 #include <math.h>
 #include <stdio.h>

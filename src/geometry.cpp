@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // geometry.C: define geometrical properties for 2D quad X Fourier spaces.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -25,7 +25,7 @@
 // Most routines are inlined in header file geometry.h
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: geometry.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <cstdio>
 #include <iostream>

@@ -1,120 +1,127 @@
-//////////////////////////////////////////////////////////////////////////////
-// eneq.cpp: from a field file containing correlations, compute terms of
-// either the fluctuating flow energy equation, Tennekes & Lumley
-// (3.2.1) which is the default action, or the mean flow energy
-// equation, T&L (3.1.11). Output values have dimensions of kinetic
-// energy per unit mass per unit time, i.e. power per unit mass.
+/*****************************************************************************
+ * eneq: utility to compute terms in either the mean or fluctutating kinetic
+ * energy equation.
+ *
+ * Usage
+ * -----
+ * eneq [options] session session.avg
+ *   options:
+ *   -h        ... print this message
+ *   -m        ... output terms for mean flow energy instead of TKE
+ *
+ * Output to standard output.
+ *
+ * Synopsis
+ * --------
+ *
+ * From a field file containing correlations, compute terms of either
+ * the fluctuating flow energy equation, Tennekes & Lumley (3.2.1)
+ * which is the default action, or the mean flow energy equation, T&L
+ * (3.1.11). Output values have dimensions of kinetic energy per unit
+ * mass per unit time, i.e. power per unit mass.
 
-//
-// Copyright (c) 2004 <--> $Date$, Hugh Blackburn
-//
-// NB: the input field file is assumed to contain only velocity and
-// appropriate correlation data. The naming conventions employed for
-// example in addfield.cpp are broken (names are here used for different
-// variables).  The appropriate averages/correlations are collected by
-// setting token AVERAGE=3.
-//
-// The program works for both 2C (uvp) 3C (uvwp) input files.
-//
-// Also: the reduction has only been confirmed to work for Cartesian,
-// not cylindrical, coordinate systems.
-//
-// Usage:
-// -----
-// eneq [options] session session.avg
-//   options:
-//   -h        ... print this message
-//   -m        ... output terms for mean flow energy instead of TKE
-//
-// Output to standard output.
-//
-// Input field names:
-// ------------------
-//
-// u -- x velocity component (cylindrical: axial)
-// v -- y velocity component (cylindrical: radial)
-// w -- z velocity component (cylindrical: azimuthal)
-// p -- pressure/density
-//
-// Names for components of the symmetric "Reynolds stress" correlations:
-//
-//                      / uu uv uw \     /  A  B  D \     /  A  B \
-//                      | .  vv vw |  =  |  .  C  E |  =  \  .  C /  -- if 2C
-//                      \ .  .  ww /     \  .  .  F /
-//
-// Names for correlations specific to the energy equation:
-// 
-// a) Scalar: 
-//    i) q = 0.5 [u^2 + v^2 (+ w^2)]
-//   ii) d = sijsij
-//
-// b) Vector:
-//    i) p u_i
-//                      / pu \   / m \     / m \
-//                      | pv | = | n |  =  \ n /  -- if 2C
-//                      \ pw /   \ o /
-//   ii) q u_i
-//                      / qu \   / r \     / r \
-//                      | qv | = | s |  =  \ s /  -- if 2C
-//                      \ qw /   \ t /
-//
-//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \   / a \
-//                      | SyxU + SyyV + SxzW | = | b | = \ b /  -- if 2C
-//                      \ SzxU + SzyV + SzzW /   \ c /
-// 
-// c) Tensor: symmetric rate-of-strain tensor sij:
-//
-//                      / xx xy xz \     /  G  H  J \     /  G  H \
-//                      | .  yy yz |  =  |  .  I  K |  =  \  .  I /  -- if 2C
-//                      \ .  .  zz /     \  .  .  L /
-//
-// Names for (output) terms in the fluctutating energy equation (TKE):
-// -------------------------------------------------------------------
-// In the case that we consider non-Newtonian flow, there are ten
-// terms to compute.  For Newtonian flow we only need six.  We will
-// use arabic numeric characters to name these terms.
-//
-// '0': ui.uj.Sij                (turbulent) Production
-// '1': Uj dq/dxj                Mean flow transport
-// '2': d(q.uj)/dxj              Turbulent transport
-// '3': d(1/rho p.uj)/dxj        Pressure work
-// '4': -2 kinvis d(sij.ui)/dxj  Viscous transport
-// '7': 2 kinvis sij.sij         Dissipation
-//
-// Note: the "missing" names 5,6,8,9 are present for non-Newtonian
-// flow.  The sum of terms 1,2,3,4,7,0 should be 0 for stationary
-// turbulence, so we also write out
-//
-// S: 0 + 1 + 2 + 3 + 4 + 7
-//
-// NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
-//
-// S: a + b + c + d + e + h
-//
-// which should approach zero pointwise, and when integrated over domain.
-//
-// Names for (output) terms in the MEAN energy equation (MKE):
-// -----------------------------------------------------------
-//
-// '0': -ui.uj.Sij                (turbulent) Production
-// '1': Uj dQ/dxj                 Mean flow transport, Q = 0.5*UiUi
-// '2': d(ui.uj.Ui)/dxj           Reynolds stress transport                  
-// '3': 1/rho*d(P.Uj)/dxj         Pressure work
-// '4': -2 kinvis d(Sij.Ui)/dxj   Viscous transport
-// '7': 2 kinvis Sij.Sij          Mean flow dissipation
-//
-// Again, the sum of terms 1,2,3,4,7,0 should equal 0 for stationary
-// turbulence, so we also write out
-//
-// S: 0 + 1 + 2 + 3 + 4 + 7
-//
-// NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
-//
-// S: a + b + c + d + e + h
-//
-// which should approach zero pointwise, and when integrated over
-// domain. For steady flow, terms 2 and 0 are also zero.
-//
+ * NB: the input field file is assumed to contain only velocity and
+ * appropriate correlation data. The naming conventions employed for
+ * example in addfield.cpp are broken (names are here used for
+ * different variables).  The appropriate averages/correlations are
+ * collected by setting token AVERAGE=3.
+ *
+ * The program works for both 2C (uvp) 3C (uvwp) input files.
+ *
+ * NB: the reduction has only been confirmed to work for Cartesian,
+ * not cylindrical, coordinate systems.
+ *
+ * Input field names
+ * -----------------
+ *
+ * u -- x velocity component (cylindrical: axial)
+ * v -- y velocity component (cylindrical: radial)
+ * w -- z velocity component (cylindrical: azimuthal)
+ * p -- pressure/density
+ *
+ * Names for components of the symmetric "Reynolds stress" correlations:
+ *
+ *                      / uu uv uw \     /  A  B  D \     /  A  B \
+ *                      | .  vv vw |  =  |  .  C  E |  =  \  .  C /  -- if 2C
+ *                      \ .  .  ww /     \  .  .  F /
+ *
+ * Names for correlations specific to the energy equation:
+ * 
+ * a) Scalar: 
+ *    i) q = 0.5 [u^2 + v^2 (+ w^2)]
+ *   ii) d = sijsij
+ *
+ * b) Vector:
+ *    i) p u_i
+ *                      / pu \   / m \     / m \
+ *                      | pv | = | n |  =  \ n /  -- if 2C
+ *                      \ pw /   \ o /
+ *   ii) q u_i
+ *                      / qu \   / r \     / r \
+ *                      | qv | = | s |  =  \ s /  -- if 2C
+ *                      \ qw /   \ t /
+ *
+ *   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \   / a \
+ *                      | SyxU + SyyV + SxzW | = | b | = \ b /  -- if 2C
+ *                      \ SzxU + SzyV + SzzW /   \ c /
+ * 
+ * c) Tensor: symmetric rate-of-strain tensor sij:
+ *
+ *                      / xx xy xz \     /  G  H  J \     /  G  H \
+ *                      | .  yy yz |  =  |  .  I  K |  =  \  .  I /  -- if 2C
+ *                      \ .  .  zz /     \  .  .  L /
+ *
+ * Names for (output) terms in the fluctutating energy equation (TKE):
+ * -------------------------------------------------------------------
+ * In the case that we consider non-Newtonian flow, there are ten
+ * terms to compute.  For Newtonian flow we only need six.  We will
+ * use arabic numeric characters to name these terms.
+ *
+ * '0': ui.uj.Sij                (turbulent) Production
+ * '1': Uj dq/dxj                Mean flow transport
+ * '2': d(q.uj)/dxj              Turbulent transport
+ * '3': d(1/rho p.uj)/dxj        Pressure work
+ * '4': -2 kinvis d(sij.ui)/dxj  Viscous transport
+ * '7': 2 kinvis sij.sij         Dissipation
+ *
+ * Note: the "missing" names 5,6,8,9 are present for non-Newtonian
+ * flow.  The sum of terms 1,2,3,4,7,0 should be 0 for stationary
+ * turbulence, so we also write out
+ *
+ * S: 0 + 1 + 2 + 3 + 4 + 7
+ *
+ * NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
+ *
+ * S: a + b + c + d + e + h
+ *
+ * which should approach zero pointwise, and when integrated over domain.
+ *
+ * Names for (output) terms in the MEAN energy equation (MKE):
+ * -----------------------------------------------------------
+ *
+ * '0': -ui.uj.Sij                (turbulent) Production
+ * '1': Uj dQ/dxj                 Mean flow transport, Q = 0.5*UiUi
+ * '2': d(ui.uj.Ui)/dxj           Reynolds stress transport                  
+ * '3': 1/rho*d(P.Uj)/dxj         Pressure work
+ * '4': -2 kinvis d(Sij.Ui)/dxj   Viscous transport
+ * '7': 2 kinvis Sij.Sij          Mean flow dissipation
+ *
+ * Again, the sum of terms 1,2,3,4,7,0 should equal 0 for stationary
+ * turbulence, so we also write out
+ *
+ * S: 0 + 1 + 2 + 3 + 4 + 7
+ *
+ * NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
+ *
+ * S: a + b + c + d + e + h
+ *
+ * which should approach zero pointwise, and when integrated over
+ * domain. For steady flow, terms 2 and 0 are also zero.
+ *
+ * @file utility/eneq.cpp
+ * @ingroup group_utility
+ *****************************************************************************/
+// Copyright (c) 2004 <--> $Date: 2020/02/20 02:44:21 $, Hugh Blackburn
 // --
 // This file is part of Semtex.
 // 
@@ -134,7 +141,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: eneq.cpp,v 9.3 2020/02/20 02:44:21 hmb Exp $";
 
 #include <sem.h>
 
@@ -156,7 +163,7 @@ static const char* fieldNames(map<char, AuxField*>&);
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
-// Driver -- adapted from probe.C.
+// Driver -- adapted from probe.cpp.
 // ---------------------------------------------------------------------------
 {
   const char           *session, *dump;

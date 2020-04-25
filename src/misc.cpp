@@ -2,7 +2,7 @@
 // misc.cpp: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
 //
-// Copyright (c) 1994 <--> $Date$ Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $ Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -23,7 +23,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: misc.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 #include <data2df.h>

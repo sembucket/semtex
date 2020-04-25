@@ -17,8 +17,11 @@
 	N_STEP      = 500
 	D_T         = 0.01
 	KINVIS      = 0.5
-	FFX         = 2.0
 </TOKENS>
+
+<FORCE>
+	CONST_X = 2.
+</FORCE>
 
 <GROUPS NUMBER=2>
 	1	w	wall

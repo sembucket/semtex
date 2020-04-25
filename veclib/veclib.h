@@ -5,7 +5,7 @@
 //
 // Veclib is described in the iPSC/2 Programmer's Reference Manual.
 //
-// $Id$
+// $Id: veclib.h,v 9.1 2019/05/30 06:36:13 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cfemdef.h>

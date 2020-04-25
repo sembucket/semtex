@@ -1,5 +1,5 @@
-# 4 element channel flow, laminar, driven by FFX.
-# du/dy_wall = +/-4; FFX = KINVIS * du_dy_wall * 4 * 2 / 4 = 4.
+# 4 element channel flow, laminar, driven by body force CONST_X.
+# du/dy_wall = +/-4; CONST_X = KINVIS * du_dy_wall * 4 * 2 / 4 = 4.
 
 <FIELDS>
 	u v p
@@ -15,10 +15,13 @@
 	N_TIME = 2
 	N_P = 9
 	N_STEP = 2000
-	DELTAT = 0.01
+	D_T = 0.01
 	KINVIS = 0.5
-	FFX    = 4
 </TOKENS>
+
+<FORCE>
+	CONST_X = 4.
+</FORCE>
 
 <GROUPS NUMBER=3>
 	1	v	value

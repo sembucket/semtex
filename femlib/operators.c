@@ -1,7 +1,7 @@
 /*****************************************************************************
- * operators.c:  operators for mesh points, derivatives, quadratures.
+ * operators.c: operators for mesh points, derivatives, quadratures.
  *
- * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:06 $, Hugh Blackburn
  *
  * This file is part of Semtex.
  * 
@@ -22,10 +22,10 @@
  *
  *
  * All 2D matrices have row-major ordering (but we have moved to flat storage).
- * All routines are real_t (double) precision.
+ * All routines are real_t (i.e. double) precision.
  * For definitions of constants (LL, GLL, etc) see cfemdef.h.
  *
- * $Id$
+ * $Id: operators.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

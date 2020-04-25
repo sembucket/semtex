@@ -1,7 +1,7 @@
 /*****************************************************************************
  * message.c: message-passing routines, currently MPI-specific.
  *
- * Copyright (c) 1996 <--> $Date$, Hugh Blackburn
+ * Copyright (c) 1996 <--> $Date: 2019/05/30 06:36:06 $, Hugh Blackburn
  *
  * This file is part of Semtex.
  * 
@@ -24,7 +24,7 @@
  *  simulation of turbulent non-Newtonian flow using a spectral
  *  element method, Appl Math Mod, V30N11: 1229-1248.
  *
- * $Id$
+ * $Id: message.c,v 9.1 2019/05/30 06:36:06 hmb Exp $
  *****************************************************************************/
 
 #include <stdio.h>

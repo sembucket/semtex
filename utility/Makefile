@@ -1,7 +1,7 @@
 ##############################################################################
 # Makefile for spectral element solver utilities.
 #
-# $Id$
+# $Id: Makefile,v 9.1 2019/05/30 06:36:11 hmb Exp $
 ##############################################################################
 
 SEM   = ..
@@ -12,7 +12,7 @@ essential: sem compare enumerate
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
      phase lowpass eneq integral traction stressdiv mapmesh     \
-     wavestress nonlin
+     wavestress nonlin meshplot
 
 distclean:
 	make clean
@@ -20,7 +20,7 @@ distclean:
         integral interp lowpass meshpr moden noiz phase preplot probe   \
         probeline probeplane project rectmesh repeatxy repeatz rstress  \
         sem2nek sem2tec slit stressdiv transform wallmesh xplane modep  \
-	wavestress nonlin
+	wavestress nonlin meshplot
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
@@ -79,6 +79,13 @@ avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy : \
 
 meshpr:	feml.o mesh.o meshpr.o $(SEMHDR)
 	$(LD) -o $@ $@.o feml.o mesh.o $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build meshplot, 2D mesh PostScript file plotter.
+#
+
+meshplot: meshplot.o
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build wallmesh, 2D mesh filter utility for use with meshpr.

@@ -38,13 +38,16 @@ C     The complex--complex FFT routines are the original GPFA code
 C     written by Clive Temperton, Recherche en Prevision Numerique
 C     Atmospheric Environment Service, Canada.
 C
+C     Many thanks to Clive for providing permission to include his
+C     routines as part of Semtex under the GPL.
+C
 C     Note that the definition of the DFT employed in DGPFA is
 C
 C        X(J) = SUM(K=0,...,N-1)(C(K)*EXP(ISIGN*2*I*J*K*PI/N)).
 C
 C     This file contains DOUBLE PRECISION versions of routines.
 C
-C     $Id$
+C     $Id: temfftd.F,v 9.1 2019/05/30 06:36:06 hmb Exp $
 C     ==================================================================
 C
 C
@@ -159,6 +162,8 @@ C
 C     ------------------------------------------------------------------
 C     Compute multiple 1D real--complex transforms of V, 
 C     return in place, using generalized prime factor FFT.
+C
+C     This subroutine is a Semtex-contributed wrapper for DGPFA. 
 C
 C     V     is the 2D array to be transformed, size NP * NZ;
 C     W     is a work array, size NP * NZ;
