@@ -1,0 +1,37 @@
+#
+# Custom directories to be ignored
+#
+.git
+.github
+.vscode
+python
+sm
+
+#
+# Ignore doc files
+#
+doc
+*.md
+
+#
+# Default .gitignore from https://github.com/github/gitignore
+#
+*.d
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.mod
+*.smod
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
