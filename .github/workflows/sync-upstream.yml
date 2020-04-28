@@ -1,6 +1,6 @@
 #
 # Sync with https://gitlab.erc.monash.edu.au/sembucket/semtex
-# At noon daily or when there is a pull request on master
+# At 23.59 daily or when there is a pull request on master
 #
 
 name: Sync upstream Gitlab
@@ -9,8 +9,9 @@ on:
   pull_request:
     branches:
       - master
-  schedule:
-  - cron:  '* 12 * * *'
+  schedule:  
+    # https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule
+    - cron:  '59 23 * * *'
 
 jobs:
   sync_upstream:
