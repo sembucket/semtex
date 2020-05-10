@@ -2,6 +2,7 @@
 #include <tensorcalcs.h>
 
 #define FLAG_MAX 2
+#define FLDS_MAX 2
 
 //
 // Globals
@@ -53,7 +54,6 @@ int main(int argc, char **argv)
 
   BCmgr *B = new BCmgr(F, element);
   Domain *D = new Domain(F, element, B);
-
   int_t NCOM;
   if (strstr(D->field, "uvw"))
     NCOM = 3;
@@ -61,6 +61,78 @@ int main(int argc, char **argv)
     NCOM = 2;
   else
     message(prog, "lacking velocity components: is session valid?", ERROR);
+
+  //
+  // Initialise fields and gradients
+  //
+  vector<AuxField *> velocity;
+  velocity.resize(NCOM);
+  for (int_t i = 0; i < NCOM; i++)
+    velocity[i] = D->u[i];
+
+  AuxField *pressure;
+  pressure = D->u[NCOM];
+
+  vector<vector<AuxField *>> Vij;
+  vector<vector<real_t *>> VijData;
+  Vij.resize(3);
+  VijData.resize(3);
+  for (int_t i = 0; i < 3; i++)
+  {
+    Vij[i].resize(3);
+    VijData[i].resize(3);
+    for (int_t j = 0; j < 3; j++)
+    {
+      VijData[i][j] = new real_t[allocSize];
+      Vij[i][j] = new AuxField(VijData[i][j], nz, element);
+      *Vij[i][j] = 0.0;
+    }
+  }
+
+  vector<AuxField *> addField(FLDS_MAX);
+  int_t iAdd = 0;
+
+  if (need[VORTICITY])
+  {
+    vector<AuxField *> vorticity;
+    vector<real_t *> VorData;
+    vorticity.resize(1);
+    VorData.resize(1);
+    VorData[0] = new real_t[allocSize];
+    vorticity[0] = new AuxField(VorData[0], nz, element, 't');
+    addField[iAdd++] = vorticity[0];
+  }
+
+  if (need[VORTGEN])
+  {
+    vector<AuxField *> vortgen;
+    vector<real_t *> VortGenData;
+    vortgen.resize(5);
+    VortGenData.resize(5);
+    for (int_t i = 0; i < 5; i++)
+    {
+      VortGenData[i] = new real_t[allocSize];
+      vortgen[i] = new AuxField(VortGenData[i], nz, element, 'k' + i);
+      addField[iAdd++] = vortgen[i];
+    }
+  }
+
+  //
+  // Cycle through field dump
+  //
+  while (getDump(D, file))
+  {
+    for (int_t i = 0; i < NDIM; i++)
+      for (int_t j = 0; j < NCOM; j++)
+      {
+        *Vij[i][j] = *velocity[j];
+        if (i == 2)
+          Vij[i][j]->transform(FORWARD);
+        Vij[i][j] -> gradient(i);
+        if (i ==2)
+          Vij[i][j] -> transform(INVERSE);
+      }
+  }
 
   file.close();
   return EXIT_SUCCESS;
@@ -137,9 +209,10 @@ static void getargs(int argc, char **argv, char *&session, char *&dump, char *&f
 }
 
 //
-// Vorticity generation
+// Cycle through field dump
 //
-
-void vortgen(void)
+static bool getDump(Domain *D, ifstream &dump)
 {
+  dump >> *D;
+  return dump.good();
 }
