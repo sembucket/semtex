@@ -20,6 +20,9 @@ add_executable (calc      ${CMAKE_SOURCE_DIR}/utility/calc.cpp     )
 add_executable (addfield
 	       ${CMAKE_SOURCE_DIR}/utility/tensorcalcs.c
 	       ${CMAKE_SOURCE_DIR}/utility/addfield.cpp )
+add_executable (vortgen
+	       ${CMAKE_SOURCE_DIR}/utility/tensorcalcs.c
+	       ${CMAKE_SOURCE_DIR}/utility/vortgen.cpp )
 add_executable (sem2nek   ${CMAKE_SOURCE_DIR}/utility/sem2nek.cpp  )
 add_executable (project   ${CMAKE_SOURCE_DIR}/utility/project.cpp  )
 add_executable (transform ${CMAKE_SOURCE_DIR}/utility/transform.cpp)
@@ -85,6 +88,8 @@ target_link_libraries (calc           fem vec
 		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 target_link_libraries (addfield   src fem vec
 		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+target_link_libraries (vortgen    src fem vec
+			  ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 target_link_libraries (sem2nek    src fem vec
 		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 target_link_libraries (project        fem vec
@@ -118,7 +123,7 @@ target_link_libraries (repmesh    src fem vec
 target_link_libraries (nonlin     src fem vec
 		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 target_link_libraries (meshplot   src fem vec
-		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})		      
+		      ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 
 target_include_directories (enumerate PUBLIC veclib femlib src)
 target_include_directories (compare   PUBLIC veclib femlib src)
@@ -139,6 +144,7 @@ target_include_directories (wallmesh  PUBLIC veclib femlib src)
 target_include_directories (traction  PUBLIC veclib femlib src)
 target_include_directories (calc      PUBLIC veclib femlib)
 target_include_directories (addfield  PUBLIC veclib femlib src utility)
+target_include_directories (vortgen   PUBLIC veclib femlib src utility)
 target_include_directories (sem2nek   PUBLIC veclib femlib src)
 target_include_directories (project   PUBLIC veclib femlib src)
 target_include_directories (transform PUBLIC veclib femlib src)

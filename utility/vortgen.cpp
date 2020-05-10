@@ -15,6 +15,164 @@ enum
 };
 
 //
+// Parse command line arguments
+//
+static void getargs(int argc, char **argv, char *&session, char *&dump, char *&func, bool *flag)
+{
+  //
+  // CLI
+  //
+  char usage[] =
+      "vortgen.cpp: process semtex/NEKTON-type field files, computer and\n"
+      "adding 2D vorticity and its derivatives\n"
+      "\n"
+      "Usage: %s [options] -s session dump.fld\n"
+      "options:\n"
+      "  -h        ... print this message \n"
+      "  -v        ... add vorticity w=curl(u)\n"
+      "  -G        ... add pressure and vorticity gradients\n"
+      "\n"
+      "Default behaviour if no option flags given: Calculate all\n";
+  char buf[StrMax];
+  while (--argc && **++argv == '-')
+  {
+    switch (*++argv[0])
+    {
+    case 'h':
+      sprintf(buf, usage, prog);
+      cout << buf;
+      exit(EXIT_SUCCESS);
+    case 's':
+      if (*++argv[0])
+        session = *argv;
+      else
+      {
+        --argc;
+        session = *++argv;
+      }
+    case 'v':
+      flag[VORTICITY] = true;
+      break;
+    case 'G':
+      flag[VORTICITY] = true;
+      break;
+    default:
+      sprintf(buf, usage, prog);
+      cout << buf;
+      exit(EXIT_FAILURE);
+      break;
+    }
+  }
+
+  //
+  // Check args
+  //
+  int_t sum;
+  for (int_t i = 0; i < FLAG_MAX; i++)
+  {
+    sum += (flag[i]) ? 1 : 0;
+  }
+  if (!sum)
+    flag[VORTGEN] = true;
+
+  if (!session)
+    message(prog, "no session file", ERROR);
+
+  if (argc != 1)
+    message(prog, "no field file", ERROR);
+  else
+    dump = *argv;
+}
+
+//
+// Cycle through field dump
+//
+static bool getDump(Domain *D, ifstream &dump)
+{
+  dump >> *D;
+  return dump.good();
+}
+
+//
+// Return field dump
+//
+static void putDump(Domain *D, vector<AuxField *> &addField, int_t nOut, ostream &strm)
+{
+  const char *hdr_fmt[] = {
+      "%-25s Session\n",
+      "%-25s Created\n",
+      "%-25s Nr, Ns, Nz, Elements\n",
+      "%-25d Step\n",
+      "%-25.6g Time\n",
+      "%-25.6g Time step\n",
+      "%-25.6g Kinvis\n",
+      "%-25.6g Beta\n",
+      "%-25s Fields written\n",
+      "%-25s Format\n"};
+
+  char routine[] = "putDump";
+  char s1[StrMax], s2[StrMax];
+  time_t tp(::time(0));
+
+  sprintf(s1, hdr_fmt[0], D->name);
+  strm << s1;
+
+  strftime(s2, 25, "%a %b %d %H:%M:%S %Y", localtime(&tp));
+  sprintf(s1, hdr_fmt[1], s2);
+  strm << s1;
+
+  D->u[0]->describe(s2);
+  sprintf(s1, hdr_fmt[2], s2);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[3], D->step);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[4], D->time);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[5], Femlib::value("D_T"));
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[6], Femlib::value("KINVIS"));
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[7], Femlib::value("BETA"));
+  strm << s1;
+
+  int_t nComponent;
+  if (D->nField() == 1)
+    nComponent = 1;
+  else
+    nComponent = (D->nField() == 3) ? 2 : 3;
+
+  for (int_t i = 0; i <= nComponent; i++)
+    s2[i] = D->u[i]->name();
+
+  for (int_t i = 0; i < nOut; i++)
+    s2[nComponent + i + 1] = addField[i]->name();
+
+  s2[nComponent + nOut + 1] = '\0';
+
+  sprintf(s1, hdr_fmt[8], s2);
+  strm << s1;
+
+  sprintf(s2, "binary ");
+  Veclib::describeFormat(s2 + strlen(s2));
+  sprintf(s1, hdr_fmt[9], s2);
+  strm << s1;
+
+  for (int_t i = 0; i <= nComponent; i++)
+    strm << *D->u[i];
+  for (int_t i = 0; i < nOut; i++)
+    strm << *addField[i];
+
+  if (!strm)
+    message(routine, "failed writing field file", ERROR);
+  strm << flush;
+}
+
+//
 // Entrypoint
 //
 int main(int argc, char **argv)
@@ -176,162 +334,4 @@ int main(int argc, char **argv)
   file.close();
   Femlib::finalize();
   return EXIT_SUCCESS;
-}
-
-//
-// Parse command line arguments
-//
-static void getargs(int argc, char **argv, char *&session, char *&dump, char *&func, bool *flag)
-{
-  //
-  // CLI
-  //
-  char usage[] =
-      "vortgen.cpp: process semtex/NEKTON-type field files, computer and\n"
-      "adding 2D vorticity and its derivatives\n"
-      "\n"
-      "Usage: %s [options] -s session dump.fld\n"
-      "options:\n"
-      "  -h        ... print this message \n"
-      "  -v        ... add vorticity w=curl(u)\n"
-      "  -G        ... add pressure and vorticity gradients\n"
-      "\n"
-      "Default behaviour if no option flags given: Calculate all\n";
-  char buf[StrMax];
-  while (--argc && **++argv == '-')
-  {
-    switch (*++argv[0])
-    {
-    case 'h':
-      sprintf(buf, usage, prog);
-      cout << buf;
-      exit(EXIT_SUCCESS);
-    case 's':
-      if (*++argv[0])
-        session = *argv;
-      else
-      {
-        --argc;
-        session = *++argv;
-      }
-    case 'v':
-      flag[VORTICITY] = true;
-      break;
-    case 'G':
-      flag[VORTICITY] = true;
-      break;
-    default:
-      sprintf(buf, usage, prog);
-      cout << buf;
-      exit(EXIT_FAILURE);
-      break;
-    }
-  }
-
-  //
-  // Check args
-  //
-  int_t sum;
-  for (int_t i = 0; i < FLAG_MAX; i++)
-  {
-    sum += (flag[i]) ? 1 : 0;
-  }
-  if (!sum)
-    flag[VORTGEN] = true;
-
-  if (!session)
-    message(prog, "no session file", ERROR);
-
-  if (argc != 1)
-    message(prog, "no field file", ERROR);
-  else
-    dump = *argv;
-}
-
-//
-// Cycle through field dump
-//
-static bool getDump(Domain *D, ifstream &dump)
-{
-  dump >> *D;
-  return dump.good();
-}
-
-//
-// Return field dump
-//
-static void putDump(Domain *D, vector<AuxField *> &addField, int_t nOut, ostream &strm)
-{
-  const char *hdr_fmt[] = {
-      "%-25s Session\n",
-      "%-25s Created\n",
-      "%-25s Nr, Ns, Nz, Elements\n",
-      "%-25d Step\n",
-      "%-25.6g Time\n",
-      "%-25.6g Time step\n",
-      "%-25.6g Kinvis\n",
-      "%-25.6g Beta\n",
-      "%-25s Fields written\n",
-      "%-25s Format\n"};
-
-  char routine[] = "putDump";
-  char s1[StrMax], s2[StrMax];
-  time_t tp(::time(0));
-
-  sprintf(s1, hdr_fmt[0], D->name);
-  strm << s1;
-
-  strftime(s2, 25, "%a %b %d %H:%M:%S %Y", localtime(&tp));
-  sprintf(s1, hdr_fmt[1], s2);
-  strm << s1;
-
-  D->u[0]->describe(s2);
-  sprintf(s1, hdr_fmt[2], s2);
-  strm << s1;
-
-  sprintf(s1, hdr_fmt[3], D->step);
-  strm << s1;
-
-  sprintf(s1, hdr_fmt[4], D->time);
-  strm << s1;
-
-  sprintf(s1, hdr_fmt[5], Femlib::value("D_T"));
-  strm << s1;
-
-  sprintf(s1, hdr_fmt[6], Femlib::value("KINVIS"));
-  strm << s1;
-
-  sprintf(s1, hdr_fmt[7], Femlib::value("BETA"));
-  strm << s1;
-
-  int_t nComponent;
-  if (D->nField() == 1)
-    nComponent = 1;
-  else
-    nComponent = (D->nField() == 3) ? 2 : 3;
-
-  for (int_t i = 0; i <= nComponent; i++)
-    s2[i] = D->u[i]->name();
-
-  for (int_t i = 0; i < nOut; i++)
-    s2[nComponent + i + 1] = addField[i]->name();
-
-  s2[nComponent + nOut + 1] = '\0';
-
-  sprintf(s1, hdr_fmt[8], s2);
-  strm << s1;
-
-  sprintf(s2, "binary ");
-  Veclib::describeFormat(s2 + strlen(s2));
-  sprintf(s1, hdr_fmt[9], s2);
-  strm << s1;
-
-  for (int_t i = 0; i <= nComponent; i++)
-    strm << *D->u[i];
-  for (int_t i = 0; i < nOut; i++)
-    strm << *addField[i];
-
-  if (!strm)
-    message(routine, "failed writing field file", ERROR);
-  strm << flush;
 }
