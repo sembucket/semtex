@@ -45,7 +45,7 @@ int main(int argc, char **argv)
   int_t allocSize = Geometry::nTotal();
   int_t NDIM = Geometry::nDim();
   if (NDIM != 2)
-    message(prog, "non 2D geometry");
+    message(prog, "non 2D geometry", ERROR);
 
   vector<Element *> element;
   element.resize(nel);
@@ -92,10 +92,10 @@ int main(int argc, char **argv)
   vector<AuxField *> addField(FLDS_MAX);
   int_t iAdd = 0;
 
+  vector<AuxField *> vorticity;
+  vector<real_t *> VorData;
   if (need[VORTICITY])
   {
-    vector<AuxField *> vorticity;
-    vector<real_t *> VorData;
     vorticity.resize(1);
     VorData.resize(1);
     VorData[0] = new real_t[allocSize];
@@ -103,10 +103,10 @@ int main(int argc, char **argv)
     addField[iAdd++] = vorticity[0];
   }
 
+  vector<AuxField *> vortgen;
+  vector<real_t *> VortGenData;
   if (need[VORTGEN])
   {
-    vector<AuxField *> vortgen;
-    vector<real_t *> VortGenData;
     vortgen.resize(5);
     VortGenData.resize(5);
     for (int_t i = 0; i < 5; i++)
@@ -123,18 +123,58 @@ int main(int argc, char **argv)
   while (getDump(D, file))
   {
     for (int_t i = 0; i < NDIM; i++)
+    {
       for (int_t j = 0; j < NCOM; j++)
       {
         *Vij[i][j] = *velocity[j];
         if (i == 2)
           Vij[i][j]->transform(FORWARD);
-        Vij[i][j] -> gradient(i);
-        if (i ==2)
-          Vij[i][j] -> transform(INVERSE);
+        Vij[i][j]->gradient(i);
+        if (i == 2)
+          Vij[i][j]->transform(INVERSE);
       }
+    }
+
+    real_t vorticity[3], tensor[9];
+    for (int_t i = 0; i < allocSize; i++)
+    {
+      for (int_t k = 0, p = 0; p < 3; p++)
+      {
+        for (int_t q = 0; q < 3; q++, k++)
+          tensor[k] = VijData[p][q][i];
+      }
+
+      if (need[VORTICITY])
+      {
+        tensor3::vorticity(tensor, vorticity);
+        VorData[0][i] = vorticity[2];
+      }
+
+      if (need[VORTGEN])
+      {
+        tensor3::vorticity(tensor, vorticity);
+        VortGenData[4][i] = vorticity[2];
+      }
+    }
+
+    if (need[VORTGEN])
+    {
+      *vortgen[0] = (*vortgen[4]).gradient(0);
+      *vortgen[1] = (*vortgen[4]).gradient(1);
+      *vortgen[2] = (*pressure).gradient(0);
+      *vortgen[3] = (*pressure).gradient(1);
+    }
+
+    for (int_t i = 0; i < iAdd; i++)
+    {
+      D->u[0]->smooth(addField[i]);
+    }
+
+    putDump(D, addField, iAdd, cout);
   }
 
   file.close();
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 
@@ -215,4 +255,83 @@ static bool getDump(Domain *D, ifstream &dump)
 {
   dump >> *D;
   return dump.good();
+}
+
+//
+// Return field dump
+//
+static void putDump(Domain *D, vector<AuxField *> &addField, int_t nOut, ostream &strm)
+{
+  const char *hdr_fmt[] = {
+      "%-25s Session\n",
+      "%-25s Created\n",
+      "%-25s Nr, Ns, Nz, Elements\n",
+      "%-25d Step\n",
+      "%-25.6g Time\n",
+      "%-25.6g Time step\n",
+      "%-25.6g Kinvis\n",
+      "%-25.6g Beta\n",
+      "%-25s Fields written\n",
+      "%-25s Format\n"};
+
+  char routine[] = "putDump";
+  char s1[StrMax], s2[StrMax];
+  time_t tp(::time(0));
+
+  sprintf(s1, hdr_fmt[0], D->name);
+  strm << s1;
+
+  strftime(s2, 25, "%a %b %d %H:%M:%S %Y", localtime(&tp));
+  sprintf(s1, hdr_fmt[1], s2);
+  strm << s1;
+
+  D->u[0]->describe(s2);
+  sprintf(s1, hdr_fmt[2], s2);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[3], D->step);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[4], D->time);
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[5], Femlib::value("D_T"));
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[6], Femlib::value("KINVIS"));
+  strm << s1;
+
+  sprintf(s1, hdr_fmt[7], Femlib::value("BETA"));
+  strm << s1;
+
+  int_t nComponent;
+  if (D->nField() == 1)
+    nComponent = 1;
+  else
+    nComponent = (D->nField() == 3) ? 2 : 3;
+
+  for (int_t i = 0; i <= nComponent; i++)
+    s2[i] = D->u[i]->name();
+
+  for (int_t i = 0; i < nOut; i++)
+    s2[nComponent + i + 1] = addField[i]->name();
+
+  s2[nComponent + nOut + 1] = '\0';
+
+  sprintf(s1, hdr_fmt[8], s2);
+  strm << s1;
+
+  sprintf(s2, "binary ");
+  Veclib::describeFormat(s2 + strlen(s2));
+  sprintf(s1, hdr_fmt[9], s2);
+  strm << s1;
+
+  for (int_t i = 0; i <= nComponent; i++)
+    strm << *D->u[i];
+  for (int_t i = 0; i < nOut; i++)
+    strm << *addField[i];
+
+  if (!strm)
+    message(routine, "failed writing field file", ERROR);
+  strm << flush;
 }
