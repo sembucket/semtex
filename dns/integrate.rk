@@ -97,6 +97,7 @@ AuxField*         __divg_rhs_tmp;
 AuxField**        __visc_rhs_tmp;
 AuxField**        __diag_vel_tmp;
 AuxField*         tmp;   // temporary field for intermediate evaluations
+vector<AuxField*> vel0;
 ModalMatrixSys*   mms;   // matrix system with homogeneous neumann bcs for the pressure solve
 vector<ModalMatrixSys*> u_sys;
 
@@ -209,6 +210,7 @@ void assert_axial_bcs(AuxField** u_arr) {
     }
   }
   AuxField::couple(u_arr[1], u_arr[2], INVERSE);
+for(int field_i = 0; field_i < 3; field_i++) u_arr[field_i]->zeroNyquist();
 }
 
 // compute grad ui, for vector ui
@@ -325,6 +327,7 @@ void y_divg_rhs(Domain* domain, AuxField** ui, AuxField* div, bool do_print) {
 
 // explciit viscosity term as curl curl ui, wi = curl ui, vi = curl wi
 void visc_rhs(Domain* domain, AuxField** ui, AuxField** wi, AuxField** vi) {
+/*
   // rotational component
   calc_curl(ui, wi);
   calc_curl(wi, vi);
@@ -341,6 +344,45 @@ void visc_rhs(Domain* domain, AuxField** ui, AuxField** wi, AuxField** vi) {
     if(domain) domain->u[0]->smooth(vi[ii]);
     *vi[ii] *= ( -1.0 * Femlib::value("KINVIS") );
   }
+*/
+  for(int ii = 0; ii < 3; ii++) {
+    *vi[ii] = 0.0;
+    for(int jj = 0; jj < 3; jj++) {
+      *__visc_rhs_tmp[ii] = *ui[ii];
+      __visc_rhs_tmp[ii]->gradient(jj);
+      if(jj == 1) __visc_rhs_tmp[ii]->mulY();
+      if(jj == 2) __visc_rhs_tmp[ii]->divY();
+      __visc_rhs_tmp[ii]->gradient(jj);
+      if(jj == 1) __visc_rhs_tmp[ii]->divY();
+      if(jj == 2) __visc_rhs_tmp[ii]->divY();
+
+      *vi[ii] += *__visc_rhs_tmp[ii];
+    }
+    if(ii == 1 || ii == 2) {
+      *__visc_rhs_tmp[ii] = *ui[ii];
+      __visc_rhs_tmp[ii]->divY();
+      __visc_rhs_tmp[ii]->divY();
+      *vi[ii] -= *__visc_rhs_tmp[ii];
+    }
+    if(ii == 1) {
+      *__visc_rhs_tmp[ii] = *ui[2];
+      __visc_rhs_tmp[ii]->gradient(2);
+      __visc_rhs_tmp[ii]->divY();
+      __visc_rhs_tmp[ii]->divY();
+      *__visc_rhs_tmp[ii] *= 2.0;
+      *vi[ii] -= *__visc_rhs_tmp[ii];
+    }
+    if(ii == 2) {
+      *__visc_rhs_tmp[ii] = *ui[1];
+      __visc_rhs_tmp[ii]->gradient(2);
+      __visc_rhs_tmp[ii]->divY();
+      __visc_rhs_tmp[ii]->divY();
+      *__visc_rhs_tmp[ii] *= 2.0;
+      *vi[ii] += *__visc_rhs_tmp[ii];
+    }
+    if(domain) domain->u[0]->smooth(vi[ii]);
+    *vi[ii] *= ( Femlib::value("KINVIS") );
+  }
 }
 
 // Eqns (50)-(52) BS, JCP, 04
@@ -354,7 +396,7 @@ void y_visc_rhs(Domain* domain, AuxField** ui, AuxField** vi) {
   int_t        Re, Im, k, kk;
   real_t       dz, dz2;
 
-//assert_axial_bcs(ui);
+assert_axial_bcs(ui);
 
   AuxField::couple(ui[1], ui[2], FORWARD);
 
@@ -367,12 +409,14 @@ void y_visc_rhs(Domain* domain, AuxField** ui, AuxField** vi) {
       __visc_rhs_tmp[0]->mulY();
       __visc_rhs_tmp[0]->gradient(jj);
 // zero out the axial dofs (testing...)
+/*
 for(int el_i = 0; el_i < Femlib::ivalue("NELS_X"); el_i++) {
 for(int node_i = el_i*np2; node_i < el_i*np2+np; node_i++) {
 __visc_rhs_tmp[0]->plane(0)[node_i] = 0.0;
 __visc_rhs_tmp[0]->plane(1)[node_i] = 0.0;
 }
 }
+*/
       *vi[ii] += *__visc_rhs_tmp[0];
     }
 
@@ -408,14 +452,96 @@ __visc_rhs_tmp[0]->plane(1)[node_i] = 0.0;
   AuxField::couple(ui[1], ui[2], INVERSE);
   AuxField::couple(vi[1], vi[2], INVERSE);
 
-//assert_axial_bcs(vi);
+assert_axial_bcs(vi);
 
   for(int ii = 0; ii < 3; ii++) {
+    // divide by y to recover original viscous term
     vi[ii]->divY();
     vi[ii]->zeroNyquist();
     if(domain) domain->u[0]->smooth(vi[ii]);
     *vi[ii] *= ( Femlib::value("KINVIS") );
   }
+}
+
+void conv_rhs(Domain* domain, AuxField** ui, AuxField** ni, FieldForce* FF) {
+  for(int ii = 0; ii < 3; ii++) ui[ii]->transform(INVERSE);
+
+  for(int ii = 0; ii < 3; ii++) {
+    *ni[ii] = 0.0;
+    for(int jj = 0; jj < 3; jj++) {
+      *__divg_rhs_tmp = *ui[ii];
+      if(jj == 2) __divg_rhs_tmp->transform(FORWARD);
+      __divg_rhs_tmp->gradient(jj);
+      if(jj == 2) __divg_rhs_tmp->divY();
+      if(jj == 2) __divg_rhs_tmp->transform(INVERSE);
+      if(jj == 2) __divg_rhs_tmp->zeroNyquist();
+      *__visc_rhs_tmp[jj] = *ui[jj];
+      ni[ii]->timesMinus(*__visc_rhs_tmp[jj], *__divg_rhs_tmp); // -ve of nonlinear term
+    }
+  }
+  *__visc_rhs_tmp[1] = *ui[1];
+  *__visc_rhs_tmp[2] = *ui[2];
+
+  __divg_rhs_tmp->times(*__visc_rhs_tmp[2], *__visc_rhs_tmp[2]);
+  __divg_rhs_tmp->divY();
+  *ni[1] += *__divg_rhs_tmp;                                    // -ve of nonlinear term
+
+  __divg_rhs_tmp->times(*__visc_rhs_tmp[1], *__visc_rhs_tmp[2]);
+  __divg_rhs_tmp->divY();
+  *ni[2] -= *__divg_rhs_tmp;                                    // -ve of nonlinear term
+
+  for(int ii = 0; ii < 3; ii++) ui[ii]->transform(FORWARD);
+  for(int ii = 0; ii < 3; ii++) ui[ii]->zeroNyquist();
+
+  for(int ii = 0; ii < 3; ii++) ni[ii]->transform(FORWARD);
+  for(int ii = 0; ii < 3; ii++) ni[ii]->zeroNyquist();
+
+  for(int ii = 0; ii < 3; ii++) *vel0[ii] = *ui[ii];
+  *__visc_rhs_tmp[0] = 0.0;
+  FF->addFourier(__visc_rhs_tmp[0], __divg_rhs_tmp, 0, vel0);
+  __visc_rhs_tmp[0]->divY();
+  *ni[0] += *__visc_rhs_tmp[0];
+
+  for(int ii = 0; ii < 3; ii++) domain->u[0]->smooth(ni[ii]);
+}
+
+void y_conv_rhs(Domain* domain, AuxField** ui, AuxField** ni, FieldForce* FF) {
+  for(int ii = 0; ii < 3; ii++) ui[ii]->transform(INVERSE);
+
+  for(int ii = 0; ii < 3; ii++) {
+    *ni[ii] = 0.0;
+    for(int jj = 0; jj < 3; jj++) {
+      *__divg_rhs_tmp = *ui[ii];
+      if(jj == 2) __divg_rhs_tmp->transform(FORWARD);
+      __divg_rhs_tmp->gradient(jj);
+      if(jj == 2) __divg_rhs_tmp->transform(INVERSE);
+      if(jj == 2) __divg_rhs_tmp->zeroNyquist();
+      if(jj <  2) __divg_rhs_tmp->mulY();
+      *__visc_rhs_tmp[jj] = *ui[jj];
+      ni[ii]->timesMinus(*__visc_rhs_tmp[jj], *__divg_rhs_tmp); // -ve of nonlinear term
+    }
+  }
+  *__visc_rhs_tmp[1] = *ui[1];
+  *__visc_rhs_tmp[2] = *ui[2];
+
+  __divg_rhs_tmp->times(*__visc_rhs_tmp[2], *__visc_rhs_tmp[2]);
+  *ni[1] += *__divg_rhs_tmp;                                    // -ve of nonlinear term
+
+  __divg_rhs_tmp->times(*__visc_rhs_tmp[1], *__visc_rhs_tmp[2]);
+  *ni[2] -= *__divg_rhs_tmp;                                    // -ve of nonlinear term
+
+  for(int ii = 0; ii < 3; ii++) ui[ii]->transform(FORWARD);
+  for(int ii = 0; ii < 3; ii++) ui[ii]->zeroNyquist();
+
+  for(int ii = 0; ii < 3; ii++) ni[ii]->transform(FORWARD);
+  for(int ii = 0; ii < 3; ii++) ni[ii]->zeroNyquist();
+
+  for(int ii = 0; ii < 3; ii++) *vel0[ii] = *ui[ii];
+  FF->addFourier(ni[0], __divg_rhs_tmp, 0, vel0);
+
+  for(int ii = 0; ii < 3; ii++) ni[ii]->divY();
+
+  for(int ii = 0; ii < 3; ii++) domain->u[0]->smooth(ni[ii]);
 }
 
 double integrate_ke(AuxField** __u) {
@@ -426,26 +552,6 @@ double integrate_ke(AuxField** __u) {
   __int_ke_tmp->innerProduct(__int_ke_vec, __int_ke_vec);
   __int_ke_tmp->transform(FORWARD);
   return __int_ke_tmp->integral();
-}
-
-void integrate_error(AuxField** curr) {
-  double usq, dusq;
-
-  for(int ii = 0; ii < 3; ii++) {
-    *__int_err_temp  = *curr[ii];
-    __int_err_temp->transform(INVERSE);
-    __int_err_temp->times(*__int_err_temp, *__int_err_temp);
-    __int_err_temp->transform(FORWARD);
-    usq = __int_err_temp->integral();
-    *__int_err_temp  = *curr[ii];
-    *__int_err_temp -= *__int_err_prev[ii];
-    __int_err_temp->transform(INVERSE);
-    __int_err_temp->times(*__int_err_temp, *__int_err_temp);
-    __int_err_temp->transform(FORWARD);
-    dusq = __int_err_temp->integral();
-    if(!Geometry::procID()) cout << "field " << ii << " error: " << sqrt(dusq/usq) << endl;
-    *__int_err_prev[ii] = *curr[ii];
-  }
 }
 
 void const_mass_flux_correction(Domain* D, AuxField** ui, real_t c_i) {
@@ -556,50 +662,6 @@ void _axpy(AuxField** u1, real_t alpha, AuxField** u2, AuxField** u3) {
   if(u3 != u1) AuxField::couple(u3[1], u3[2], INVERSE);
 }
 
-void _axpy_i(AuxField* u1, real_t alpha, AuxField* u2, AuxField* u3) {
-  int       np     = Geometry::nP();
-  int       np2    = np * np;
-  real_t*   plane_1;
-  real_t*   plane_2;
-  real_t*   plane_3;
-  int       plane_j;
-  int       node_j;
-  int       nex    = Femlib::ivalue("NELS_X");
-  int       ney    = Femlib::ivalue("NELS_Y");
-
-  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-    plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-
-    plane_1 = u1->plane(plane_i);
-    plane_2 = u2->plane(plane_i);
-    plane_3 = u3->plane(plane_i);
-
-    for(int element_i = 0; element_i < Geometry::nElmt(); element_i++) {
-      for(int node_i = 0; node_i < np2; node_i++) {
-        node_j = element_i * np2 + node_i;
-
-        // nyquist frequency
-        if(plane_j == 1) {
-          plane_1[node_j] = 0.0;
-          continue;
-        }
-        // wall - homogenous dirichlet bcs
-        if(element_i/nex == ney-1 && node_i/np == np-1) {
-          plane_1[node_j] = 0.0;
-          continue;
-        }
-        // axis
-        if(element_i/nex == 0 && node_i/np == 0) {
-          plane_1[node_j] = plane_3[node_j];
-          continue;
-        }
-
-        plane_1[node_j] = alpha * plane_2[node_j] + plane_3[node_j];
-      }
-    }
-  }
-}
-
 void zero_mean_radial_pressure_gradient_at_axis(AuxField* dpdy) {
   int       np     = Geometry::nP();
   int       np2    = np * np;
@@ -631,35 +693,32 @@ void zero_mean_radial_pressure_gradient_at_axis(AuxField* dpdy) {
   }
 }
 
-void zero_axis(AuxField* ui) {
+void zero_pressure_rhs_at_axis(AuxField* _rhs) {
   int       np     = Geometry::nP();
   int       np2    = np * np;
-  int       node_j;
   int       plane_j;
+  int       node_j;
   real_t*   plane;
+  int       nex    = Femlib::ivalue("NELS_X");
 
   for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
     plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-    plane = ui->plane(plane_i);
+    plane   = _rhs->plane(plane_i);
 
-    if(plane_j < 2) {
-      for(int element_i = 0; element_i < Femlib::ivalue("NELS_X"); element_i++) {
-        for(int node_i = 0; node_i < np; node_i++) {
-          node_j = element_i * np2 + node_i;
-//cout << plane[node_j] << "\t";
-          plane[node_j] = 0.0;
-        }
+    for(int element_i = 0; element_i < nex; element_i++) {
+      for(int node_i = 0; node_i < np; node_i++) {
+        node_j = element_i * np2 + node_i;
+        if(plane_j > 1) plane[node_j] = 0.0;
+//plane[node_j] = 0.0; // dp_{k=0}/dy=0; so p_{k=0} should not be enforced at the axis
       }
     }
   }
-//if(!Geometry::procID())cout<<endl;
 }
 
 #define ID_DIAGNOSTIC 1
 
 #ifdef ID_DIAGNOSTIC
 bool alloc_diagnostics = true;
-vector<AuxField*> vel0;
 vector<AuxField*> vcty;
 AuxField* enst;
 AuxField* pres;
@@ -844,245 +903,6 @@ void diagnostics(Domain* domain, bool to_file) {
 #endif
 
 //#define ROTATIONAL_CORRECTION 1
-
-#if 0
-void rk_step(void (*advection) (Domain*    , 
-                                BCmgr*     ,
-                                AuxField** , 
-                                AuxField** ,
-                                FieldForce*),
-                Domain*      D ,
-                BCmgr*       B ,
-                DNSAnalyser* A ,
-                FieldForce*  FF, int substep, Msys** MMS, AuxField** Us1, AuxField** Uf1)
-{
-  int jj;
-  const real_t dt      = Femlib::value("D_T") / Femlib::ivalue("RK_SUBSTEP");
-  const real_t a_21    = 2.0/3.0;
-  const real_t a_31    = 1.0/3.0;
-  const real_t a_32    = 1.0/3.0;
-  const real_t c_2     = 2.0/3.0;
-  const real_t c_3     = 2.0/3.0;
-  const real_t c_4     = 1.0;
-  const real_t b_1     = 1.0/4.0;
-  const real_t b_3     = 3.0/4.0;
-  double int_p, int_k;
-
-  for(int ii = 0; ii < 3; ii++) *uo[ii] = *D->u[ii];
-
-  // on first substep put the inital velocity fields in the previous velocity
-  // fields storage space for use in the velocity correction scheme once we're done here
-  if(!substep) {
-    for(int ii = 0; ii < 3; ii++) {
-      *Us1[ii] = *D->u[ii];
-      if(ii < 2) Us1[ii]->mulY();
-    }
-  }
-
-  // step 1.
-  jj = 0;
-  // 1.1 explicit forcing
-  for(int ii = 0; ii < 3; ii++) *rhs[ii] = *uo[ii];
-  for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
-  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  // on first substep put the inital nonlinear forcing (scaled by y) in the previous nonlinear
-  // terms storage space for use in the velocity correction scheme once we're done here
-  if(!substep) for(int ii = 0; ii < 3; ii++) *Uf1[ii] = *F_i[ii];
-  visc_rhs(D, uo, vort, visc);
-  for(int ii = 0; ii < 3; ii++) {
-    if(ii < 2) F_i[3*jj+ii]->divY();
-    *F_i[3*jj+ii] += *visc[ii];
-
-    *v_i[ii] = *uo[ii];
-//    v_i[ii]->axpy(dt*a_21, *F_i[3*jj+ii]);
-v_i[3*jj+ii]->mulY();
-v_i[3*jj+ii]->divY();
-  }
-  assert_axial_bcs(&v_i[3*jj]);
-  //const_mass_flux_correction(D, &v_i[3*jj], c_2);
-  // 1.2 pressure poisson equation (rhs scaled by radius)
-  D->u[CIND]->evaluateBoundaries(D->u[CIND], 0);
-  divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
-  *rhs[0] /= dt;
-//*rhs[0]=*uo[0];
-//*D->u[PIND]=*rhs[0];
-*D->u[CIND]=0.0;
-  D->u[CIND]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[CIND];
-  // 1.3 apply the rotational correction to the pressure
-  *phi_c[jj] = *phi[jj];
-  divg_rhs(D, uo, rhs[0], false, false);
-  phi_c[jj]->axpy(+a_21*Femlib::value("KINVIS"), *rhs[0]);
-  D->u[0]->smooth(phi_c[jj]);
-#ifdef ROTATIONAL_CORRECTION
-  *D->u[CIND] = *phi_c[jj];
-#endif
-  // 1.4 project onto divergence free solution
-  for(int ii = 0; ii < 3; ii++) {
-    *rhs[ii] = *D->u[CIND];
-    rhs[ii]->gradient(ii);
-    if(ii < 2) {rhs[ii]->mulY();rhs[ii]->divY();}
-    if(ii == 2) rhs[ii]->divY();
-//if(ii == 1) zero_axis(rhs[ii]); // zero the pressure gradient at the boundary
-    *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *rhs[ii]);
-//zero_dirichlet_bcs(u_i[3*jj+ii]);
-    D->u[0]->smooth(u_i[3*jj+ii]);
-    if(ii < 2) {u_i[3*jj+ii]->mulY();u_i[3*jj+ii]->divY();}
-  }
-  //_axpy(&u_i[3*jj], -dt, rhs, &v_i[3*jj]);
-  //for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(u_i[3*jj+ii]);
-  // 1.5 constant mass flux forcing correction
-  const_mass_flux_correction(D, &u_i[3*jj], c_2);
-  assert_axial_bcs(&u_i[3*jj]);
-*pres = *D->u[CIND];
-for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
-diagnostics(D, false);
-
-  // step 2.
-  jj = 1;
-  // 2.1 explicit forcing
-  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*(jj-1)+ii];
-  for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *u_i[3*(jj-1)+ii];
-  for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
-  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  visc_rhs(D, &u_i[0], vort, visc);
-  for(int ii = 0; ii < 3; ii++) {
-    if(ii < 2) F_i[3*jj+ii]->divY();
-    *F_i[3*jj+ii] += *visc[ii];
-
-    *v_i[3*jj+ii] = *uo[ii];
-//    v_i[3*jj+ii]->axpy(dt*a_31, *F_i[3*(jj-1)+ii]);
-//    v_i[3*jj+ii]->axpy(dt*a_32, *F_i[3*(jj+0)+ii]);
-if(ii<2)v_i[3*jj+ii]->mulY();
-if(ii<2)v_i[3*jj+ii]->divY();
-  }
-  assert_axial_bcs(&v_i[3*jj]);
-  //const_mass_flux_correction(D, &v_i[3*jj], c_3);
-  // 2.2 pressure poisson equation (rhs scaled by radius)
-  D->u[CIND]->evaluateBoundaries(D->u[CIND], 0);
-  divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
-  *rhs[0] /= dt;
-//*rhs[0]=*uo[0];
-//*D->u[PIND]=*rhs[0];
-*D->u[CIND]=0.0;
-  D->u[CIND]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[CIND];
-  // 2.3 apply the rotational correction to the pressure
-  *phi_c[jj] = *phi[jj];
-  divg_rhs(D, uo, rhs[0], false, false);
-  phi_c[jj]->axpy(+a_31*Femlib::value("KINVIS"), *rhs[0]);
-  D->u[0]->smooth(phi_c[jj]);
-  divg_rhs(D, &u_i[0], rhs[0], false, false);
-  phi_c[jj]->axpy(+a_32*Femlib::value("KINVIS"), *rhs[0]);
-  D->u[0]->smooth(phi_c[jj]);
-#ifdef ROTATIONAL_CORRECTION
-  *D->u[CIND] = *phi_c[jj];
-#endif
-  // 2.4 project onto divergence free solution
-  for(int ii = 0; ii < 3; ii++) {
-    *rhs[ii] = *D->u[CIND];
-    rhs[ii]->gradient(ii);
-    if(ii < 2) {rhs[ii]->mulY();rhs[ii]->divY();}
-    if(ii == 2) rhs[ii]->divY();
-//if(ii == 1) zero_axis(rhs[ii]); // zero the pressure gradient at the boundary
-    *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *rhs[ii]);
-//zero_dirichlet_bcs(u_i[3*jj+ii]);
-    D->u[0]->smooth(u_i[3*jj+ii]);
-    if(ii < 2) {u_i[3*jj+ii]->mulY();u_i[3*jj+ii]->divY();}
-  }
-  //_axpy(&u_i[3*jj], -dt, rhs, &v_i[3*jj]);
-  //for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(u_i[3*jj+ii]);
-  // 2.5 constant mass flux forcing correction
-  const_mass_flux_correction(D, &u_i[3*jj], c_3);
-  assert_axial_bcs(&u_i[3*jj]);
-*pres = *D->u[CIND];
-for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
-diagnostics(D, false);
-
-  // step 3.
-  jj = 2;
-  // 3.1 explicit forcing
-  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*(jj-1)+ii];
-  for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *u_i[3*(jj-1)+ii];
-  for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
-  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
-  visc_rhs(D, &u_i[3], vort, visc);
-  for(int ii = 0; ii < 3; ii++) {
-    if(ii < 2) F_i[3*jj+ii]->divY();
-    *F_i[3*jj+ii] += *visc[ii];
-
-    *v_i[3*jj+ii] = *uo[ii];
-//    v_i[3*jj+ii]->axpy(dt*b_1, *F_i[3*(jj-2)+ii]);
-//    v_i[3*jj+ii]->axpy(dt*b_3, *F_i[3*(jj+0)+ii]);
-if(ii<2)v_i[3*jj+ii]->mulY();
-if(ii<2)v_i[3*jj+ii]->divY();
-  }
-  assert_axial_bcs(&v_i[3*jj]);
-  //const_mass_flux_correction(D, &v_i[3*jj], c_4);
-  // 3.2 pressure poisson equation (rhs scaled by radius)
-  D->u[CIND]->evaluateBoundaries(D->u[CIND], 0, true);
-  divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
-  *rhs[0] /= dt;
-//*rhs[0]=*uo[0];
-//*D->u[PIND]=*rhs[0];
-*D->u[CIND]=0.0;
-  D->u[CIND]->solve(rhs[0], mms);
-  *phi[jj] = *D->u[CIND];
-  // 3.3 apply the rotational correction to the pressure
-  *phi_c[jj] = *phi[jj];
-  divg_rhs(D, &uo[0], rhs[0], false, false);
-  phi_c[jj]->axpy(+b_1*Femlib::value("KINVIS"), *rhs[0]);
-  D->u[0]->smooth(phi_c[jj]);
-  divg_rhs(D, &u_i[3], rhs[0], false, false);
-  phi_c[jj]->axpy(+b_3*Femlib::value("KINVIS"), *rhs[0]);
-  D->u[0]->smooth(phi_c[jj]);
-#ifdef ROTATIONAL_CORRECTION
-  *D->u[CIND] = *phi_c[jj];
-#endif
-  // 3.4 project onto divergence free solution
-  for(int ii = 0; ii < 3; ii++) {
-    *rhs[ii] = *D->u[CIND];
-    rhs[ii]->gradient(ii);
-    if(ii < 2) {rhs[ii]->mulY();rhs[ii]->divY();}
-    if(ii == 2) rhs[ii]->divY();
-//if(ii == 1) zero_axis(rhs[ii]); // zero the pressure gradient at the boundary
-    *u_i[3*jj+ii] = *v_i[3*jj+ii];
-    u_i[3*jj+ii]->axpy(-dt, *rhs[ii]);
-//zero_dirichlet_bcs(u_i[3*jj+ii]);
-    D->u[0]->smooth(u_i[3*jj+ii]);
-    if(ii < 2) {u_i[3*jj+ii]->mulY();u_i[3*jj+ii]->divY();}
-  }
-  //_axpy(&u_i[3*jj], -dt, rhs, &v_i[3*jj]);
-  //for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(u_i[3*jj+ii]);
-  // 3.5 constant mass flux forcing correction
-  const_mass_flux_correction(D, &u_i[3*jj], c_4);
-  assert_axial_bcs(&u_i[3*jj]);
-
-  // velocity udpate
-  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
-if(substep==600)
-{D->dump();abort();}
-
-*pres = *D->u[CIND];
-diagnostics(D, false);
-
-  // second order pressure
-  *D->u[PIND] = 0.0;
-#ifdef ROTATIONAL_CORRECTION
-  D->u[PIND]->axpy(-3.0, *phi_c[jj-1]);
-  D->u[PIND]->axpy(+4.0, *phi_c[jj+0]);
-#else
-  D->u[PIND]->axpy(-3.0, *phi[jj-1]);
-  D->u[PIND]->axpy(+4.0, *phi[jj+0]);
-#endif
-
-*pres = *D->u[PIND];
-diagnostics(D, false);
-}
-#endif
-
 //#define Y_SCALE 1
 
 void rk_step(void (*advection) (Domain*    , 
@@ -1124,6 +944,7 @@ void rk_step(void (*advection) (Domain*    ,
   for(int ii = 0; ii < 3; ii++) *rhs[ii] = *uo[ii];
   for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
 //  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
+  y_conv_rhs(D, &uo[0], &F_i[3*jj], FF);
   if(!substep) for(int ii = 0; ii < 3; ii++) *Uf1[ii] = *F_i[ii];
   //visc_rhs(D, uo, vort, visc);
   y_visc_rhs(D, uo, visc);
@@ -1131,18 +952,18 @@ void rk_step(void (*advection) (Domain*    ,
 #ifdef Y_SCALE
     if(ii < 2) visc[ii]->mulY();
 #else
-    if(ii < 2) F_i[3*jj+ii]->divY();
+//    if(ii < 2) F_i[3*jj+ii]->divY();
 #endif
-//    *F_i[3*jj+ii] += *visc[ii];
-*F_i[3*jj+ii] = *visc[ii];
+    *F_i[3*jj+ii] += *visc[ii];
+//*F_i[3*jj+ii] = *visc[ii];
 
-    //*v_i[3*jj+ii] = *uo[ii];
+    *v_i[3*jj+ii] = *uo[ii];
 #ifdef Y_SCALE
     if(ii < 2) v_i[3*jj+ii]->mulY();
 #endif
-    //v_i[ii]->axpy(dt*a_21, *F_i[3*jj+ii]);
+    v_i[ii]->axpy(dt*a_21, *F_i[3*jj+ii]);
   }
-  _axpy(&v_i[3*jj], dt*a_21, &F_i[3*jj], uo);
+//  _axpy(&v_i[3*jj], dt*a_21, &F_i[3*jj], uo);
   // 1.2 pressure poisson equation
 #ifdef Y_SCALE
   y_divg_rhs(NULL, &v_i[3*jj], rhs[0], true);
@@ -1150,6 +971,7 @@ void rk_step(void (*advection) (Domain*    ,
   divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
 #endif
   *rhs[0] /= dt;
+//zero_pressure_rhs_at_axis(rhs[0]);
   D->u[CIND]->solve(rhs[0], mms);
   *phi[jj] = *D->u[CIND];
   // 1.3 apply the rotational correction to the pressure
@@ -1179,6 +1001,7 @@ void rk_step(void (*advection) (Domain*    ,
     u_i[3*jj+ii]->divY();
 #endif
   }
+assert_axial_bcs(&u_i[3*jj]);
 *pres = *D->u[CIND];
 for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
 diagnostics(D, false);
@@ -1190,26 +1013,27 @@ diagnostics(D, false);
   for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *u_i[3*(jj-1)+ii];
   for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
 //  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
+  y_conv_rhs(D, &u_i[0], &F_i[3*jj], FF);
   //visc_rhs(D, &u_i[0], vort, visc);
   y_visc_rhs(D, &u_i[0], visc);
   for(int ii = 0; ii < 3; ii++) {
 #ifdef Y_SCALE
     if(ii < 2) visc[ii]->mulY();
 #else
-    if(ii < 2) F_i[3*jj+ii]->divY();
+//    if(ii < 2) F_i[3*jj+ii]->divY();
 #endif
-//    *F_i[3*jj+ii] += *visc[ii];
-*F_i[3*jj+ii] = *visc[ii];
+    *F_i[3*jj+ii] += *visc[ii];
+//*F_i[3*jj+ii] = *visc[ii];
 
-    //*v_i[3*jj+ii] = *uo[ii];
+    *v_i[3*jj+ii] = *uo[ii];
 #ifdef Y_SCALE
     if(ii < 2) v_i[3*jj+ii]->mulY();
 #endif
-    //v_i[3*jj+ii]->axpy(dt*a_31, *F_i[3*(jj-1)+ii]);
-    //v_i[3*jj+ii]->axpy(dt*a_32, *F_i[3*(jj+0)+ii]);
+    v_i[3*jj+ii]->axpy(dt*a_31, *F_i[3*(jj-1)+ii]);
+    v_i[3*jj+ii]->axpy(dt*a_32, *F_i[3*(jj+0)+ii]);
   }
-  _axpy(&v_i[3*jj], dt*a_31, &F_i[3*(jj-1)], uo);
-  _axpy(&v_i[3*jj], dt*a_32, &F_i[3*(jj+0)], &v_i[3*jj]);
+//  _axpy(&v_i[3*jj], dt*a_31, &F_i[3*(jj-1)], uo);
+//  _axpy(&v_i[3*jj], dt*a_32, &F_i[3*(jj+0)], &v_i[3*jj]);
   // 2.2 pressure poisson equation
 #ifdef Y_SCALE
   y_divg_rhs(NULL, &v_i[3*jj], rhs[0], true);
@@ -1217,6 +1041,7 @@ diagnostics(D, false);
   divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
 #endif
   *rhs[0] /= dt;
+//zero_pressure_rhs_at_axis(rhs[0]);
   D->u[CIND]->solve(rhs[0], mms);
   *phi[jj] = *D->u[CIND];
   // 2.3 apply the rotational correction to the pressure
@@ -1248,6 +1073,7 @@ diagnostics(D, false);
     u_i[3*jj+ii]->divY();
 #endif
   }
+assert_axial_bcs(&u_i[3*jj]);
 *pres = *D->u[CIND];
 for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
 diagnostics(D, false);
@@ -1259,26 +1085,27 @@ diagnostics(D, false);
   for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *u_i[3*(jj-1)+ii];
   for(int ii = 0; ii < 3; ii++) *F_i[jj*3+ii] = 0.0;
 //  advection(D, B, rhs, &F_i[3*jj], FF); // note: axial and radial components are scaled by y here...
+  y_conv_rhs(D, &u_i[3], &F_i[3*jj], FF);
   //visc_rhs(D, &u_i[3], vort, visc);
   y_visc_rhs(D, &u_i[3], visc);
   for(int ii = 0; ii < 3; ii++) {
 #ifdef Y_SCALE
     if(ii < 2) visc[ii]->mulY();
 #else
-    if(ii < 2) F_i[3*jj+ii]->divY();
+//    if(ii < 2) F_i[3*jj+ii]->divY();
 #endif
-//    *F_i[3*jj+ii] += *visc[ii];
-*F_i[3*jj+ii] = *visc[ii];
+    *F_i[3*jj+ii] += *visc[ii];
+//*F_i[3*jj+ii] = *visc[ii];
 
-    //*v_i[3*jj+ii] = *uo[ii];
+    *v_i[3*jj+ii] = *uo[ii];
 #ifdef Y_SCALE
     if(ii < 2) v_i[3*jj+ii]->mulY();
 #endif
-    //v_i[3*jj+ii]->axpy(dt*b_1, *F_i[3*(jj-2)+ii]);
-    //v_i[3*jj+ii]->axpy(dt*b_3, *F_i[3*(jj+0)+ii]);
+    v_i[3*jj+ii]->axpy(dt*b_1, *F_i[3*(jj-2)+ii]);
+    v_i[3*jj+ii]->axpy(dt*b_3, *F_i[3*(jj+0)+ii]);
   }
-  _axpy(&v_i[3*jj], dt*b_1, &F_i[3*(jj-2)], uo);
-  _axpy(&v_i[3*jj], dt*b_3, &F_i[3*(jj+0)], &v_i[3*jj]);
+//  _axpy(&v_i[3*jj], dt*b_1, &F_i[3*(jj-2)], uo);
+//  _axpy(&v_i[3*jj], dt*b_3, &F_i[3*(jj+0)], &v_i[3*jj]);
   // 3.2 pressure poisson equation
 #ifdef Y_SCALE
   y_divg_rhs(NULL, &v_i[3*jj], rhs[0], true);
@@ -1286,6 +1113,7 @@ diagnostics(D, false);
   divg_rhs(NULL, &v_i[3*jj], rhs[0], true, true);
 #endif
   *rhs[0] /= dt;
+//zero_pressure_rhs_at_axis(rhs[0]);
 *D->u[PIND] = *rhs[0];
   D->u[CIND]->solve(rhs[0], mms);
   *phi[jj] = *D->u[CIND];
@@ -1318,9 +1146,11 @@ diagnostics(D, false);
     u_i[3*jj+ii]->divY();
 #endif
   }
+assert_axial_bcs(&u_i[3*jj]);
   // velocity udpate
   for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[3*jj+ii];
-if(substep==12800)
+//if(substep==12800)
+if(substep==25600)
 //if(substep==204600)
 //{D->dump();        }
 //if(substep==204800)
@@ -1367,57 +1197,75 @@ void rk_step_first_order(void (*advection) (Domain*    ,
   // 1.1 explicit forcing
   for(int ii = 0; ii < 3; ii++) *rhs[ii] = *uo[ii];
   for(int ii = 0; ii < 3; ii++) *F_i[ii] = 0.0;
-  advection(D, B, rhs, F_i, FF); // note: axial and radial components are scaled by y here...
-  // on first substep put the inital nonlinear forcing (scaled by y) in the previous nonlinear
-  // terms storage space for use in the velocity correction scheme once we're done here
+//  advection(D, B, rhs, F_i, FF); // note: axial and radial components are scaled by y here...
+  y_conv_rhs(D, &uo[0], F_i, FF);
   if(!substep) for(int ii = 0; ii < 3; ii++) *Uf1[ii] = *F_i[ii];
   visc_rhs(D, uo, vort, visc);
+  //y_visc_rhs(D, uo, visc);
   for(int ii = 0; ii < 3; ii++) {
-    if(ii < 2) F_i[ii]->divY();
+#ifdef Y_SCALE
+    if(ii < 2) visc[ii]->mulY();
+#else
+//    if(ii < 2) F_i[ii]->divY();
+#endif
     *F_i[ii] += *visc[ii];
+//*F_i[ii] = *visc[ii];
 
     *v_i[ii] = *uo[ii];
-    //v_i[ii]->axpy(dt, *F_i[ii]);
+#ifdef Y_SCALE
+    if(ii < 2) v_i[ii]->mulY();
+#endif
+    v_i[ii]->axpy(dt, *F_i[ii]);
   }
-  assert_axial_bcs(v_i);
-  //const_mass_flux_correction(D, v_i, c_2);
-  // 1.2 pressure poisson equation (rhs scaled by radius)
-  D->u[CIND]->evaluateBoundaries(D->u[CIND], 0);
+//  _axpy(v_i, dt, F_i, uo);
+  // 1.2 pressure poisson equation
+#ifdef Y_SCALE
+  y_divg_rhs(NULL, v_i, rhs[0], true);
+#else
   divg_rhs(NULL, v_i, rhs[0], true, true);
+#endif
   *rhs[0] /= dt;
-  *D->u[CIND]=0.0;
+//zero_pressure_rhs_at_axis(rhs[0]);
   D->u[CIND]->solve(rhs[0], mms);
   *phi[0] = *D->u[CIND];
   // 1.3 apply the rotational correction to the pressure
+#ifdef ROTATIONAL_CORRECTION // TODO: y scaled version of the correction
   *phi_c[0] = *phi[0];
   divg_rhs(D, uo, rhs[0], false, false);
   phi_c[0]->axpy(Femlib::value("KINVIS"), *rhs[0]);
   D->u[0]->smooth(phi_c[0]);
-#ifdef ROTATIONAL_CORRECTION
   *D->u[CIND] = *phi_c[0];
 #endif
   // 1.4 project onto divergence free solution
   for(int ii = 0; ii < 3; ii++) {
     *rhs[ii] = *D->u[CIND];
     rhs[ii]->gradient(ii);
+    if(ii == 1) zero_mean_radial_pressure_gradient_at_axis(rhs[ii]);
+#ifdef Y_SCALE
+    if(ii <  2) rhs[ii]->mulY();
+    if(ii == 2) v_i[ii]->mulY();
+#else
     if(ii == 2) rhs[ii]->divY();
-    *u_i[ii] = *v_i[ii];
-    u_i[ii]->axpy(-dt, *rhs[ii]);
-//zero_dirichlet_bcs(u_i[ii]);
-    D->u[0]->smooth(u_i[ii]);
+#endif
   }
-  //_axpy(u_i, -dt, rhs, v_i);
-  //for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(u_i[ii]);
-  // 1.5 constant mass flux forcing correction
-  const_mass_flux_correction(D, u_i, 1.0);
-  assert_axial_bcs(u_i);
+  _axpy(u_i, -dt, rhs, v_i);
+  for(int ii = 0; ii < 3; ii++) {
+    D->u[0]->smooth(u_i[ii]);
+#ifdef Y_SCALE
+    u_i[ii]->divY();
+#endif
+  }
+assert_axial_bcs(u_i);
+*pres = *D->u[CIND];
+for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[ii];
+diagnostics(D, false);
 
-  // velocity udpate
-  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[ii];
-if(substep==600)
+if(substep==12800)
+//if(substep==204600)
+//{D->dump();        }
+//if(substep==204800)
 {D->dump();abort();}
 
-  // second order pressure
 #ifdef ROTATIONAL_CORRECTION
   *D->u[PIND] = *phi_c[0];
 #else
@@ -1428,6 +1276,7 @@ if(substep==600)
 diagnostics(D, false);
 }
 
+#if 0
 void pc_loop(void (*advection) (Domain*    , 
                                 BCmgr*     ,
                                 AuxField** , 
@@ -1522,8 +1371,8 @@ D->u[CIND]->zeroNyquist();
 //      *rhs[ii] *= (-1.0*lambda2);
     }
     _axpy(rhs, 1.0,    uo,      rhs);
-    _axpy(rhs, 0.5*dt, &F_i[0], rhs);
-    _axpy(rhs, 0.5*dt, &F_i[3], rhs);
+//    _axpy(rhs, 0.5*dt, &F_i[0], rhs);
+//    _axpy(rhs, 0.5*dt, &F_i[3], rhs);
     for(int ii = 0; ii < 3; ii++) {
       rhs[ii]->mulY();
       *rhs[ii] *= (-1.0*lambda2);
@@ -1531,12 +1380,16 @@ D->u[CIND]->zeroNyquist();
     // couple the rhs terms so that we are in tilde variables
     for(int ii = 0; ii < 3; ii++) D->u[ii]->evaluateBoundaries(NULL, step, true);
     Field::coupleBCs(D->u[1], D->u[2], FORWARD);
+    AuxField::couple(D->u[1], D->u[2], FORWARD);
     AuxField::couple(rhs[1] , rhs[2],  FORWARD);
-    //for(int ii = 0; ii < 3; ii++) D->u[ii]->solve(rhs[ii], u_sys[ii]);
     for(int ii = 0; ii < 3; ii++) D->u[ii]->solve(rhs[ii], MMS[ii]);
     // uncouple back into hat variables
     AuxField::couple(D->u[1], D->u[2], INVERSE);
     for(int ii = 0; ii < 3; ii++) D->u[ii]->zeroNyquist();
+/*
+assert_axial_bcs(rhs);
+for(int ii = 0; ii < 3; ii++) *D->u[ii] = *rhs[ii];
+*/
 
     // 2. pressure step
     *phi[0] = *D->u[CIND];
@@ -1611,7 +1464,7 @@ phi_c[0]->zeroNyquist();
   _axpy(u_i, -dt, rhs, u_i);
   for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[ii];
   for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(D->u[ii]);
-if(step==2){D->dump();abort();}
+//if(step==3){D->dump();abort();}
 
 {
 int_u2 = integrate_ke(v_i);
@@ -1623,6 +1476,203 @@ if(!Geometry::procID()) cout << "global pressure integral: " << int_p << endl;
   Femlib::ivalue("N_TIME", ntime);
   *D->u[PIND] = *D->u[CIND];
 
+  alloc_pc = false;
+}
+#endif
+void pc_loop(void (*advection) (Domain*    , 
+                                BCmgr*     ,
+                                AuxField** , 
+                                AuxField** ,
+                                FieldForce*),
+                Domain*      D ,
+                BCmgr*       B ,
+                DNSAnalyser* A ,
+                FieldForce*  FF, Msys** MMS, AuxField** Us1, AuxField** Uf1, int step)
+{
+  int           done    = 0;
+  const int_t   nmodes  = Geometry::nModeProc();
+  const int_t   base    = Geometry::baseMode();
+  const real_t  beta    = Femlib::value("BETA");
+  const real_t  dt      = Femlib::value("D_T");
+  const int_t   ntime   = Femlib::ivalue("N_TIME");
+  const real_t  lambda2 = 1.0 / Femlib::value("D_T") / Femlib::value("KINVIS");
+  real_t        int_u2, int_du2, int_p, int_dp;
+  int           iter    = 0;
+
+  Femlib::ivalue("N_TIME", 1);
+
+  if(alloc_pc) {
+    u_sys.resize(3);
+    for(int ii = 0; ii < 3; ii++) {
+      u_sys[ii] = new Msys(lambda2, beta, base, nmodes, D->elmt, D->b[ii], DIRECT);
+    }
+  }
+
+  // on first substep put the inital velocity fields in the previous velocity
+  // fields storage space for use in the velocity correction scheme once we're done here
+  for(int ii = 0; ii < 3; ii++) {
+    *Us1[ii] = *D->u[ii];
+    if(ii < 2) Us1[ii]->mulY();
+  }
+
+  for(int ii = 0; ii < 3; ii++) *uo[ii]  = *D->u[ii];
+  for(int ii = 0; ii < 3; ii++) *u_i[ii] = *D->u[ii];
+  for(int ii = 0; ii < 9; ii++) *F_i[ii] = 0.0;
+  for(int ii = 0; ii < 9; ii++) F_i[ii]->zeroNyquist();
+
+  if(!Geometry::procID()) cout << "\ndoing pressure correction iterative solve, tracer index: " << CIND << ", pressure index: " << PIND << "\n" << endl;
+
+  // compute the initial ke
+  int_u2 = integrate_ke(uo);
+  if(!Geometry::procID()) cout << "initial ke: " << int_u2 << endl;
+  int_p = D->u[CIND]->integral();
+  if(!Geometry::procID()) cout << "global pressure integral: " << int_p << endl;
+
+  // first step, do a poisson solve for the initial pressure
+  if(alloc_pc) {
+    divg_rhs(NULL, uo, rhs[0], true, false); // scale rhs by y
+    *rhs[0] /= dt;
+    D->u[CIND]->solve(rhs[0], mms);
+    divg_rhs(D, uo, rhs[0], false, false);
+    D->u[CIND]->axpy(-1.0*Femlib::value("KINVIS"), *rhs[0]);
+    *phi[0] = *D->u[CIND];
+  }
+*D->u[CIND] = 0.0;
+*phi[0] = 0.0;
+D->u[CIND]->zeroNyquist();
+
+  while(!done) {
+    if(!Geometry::procID()) cout << "iteration: " << iter << "\t";
+    // 1. viscous step
+    //    -- nonlinear term (previous time level)
+    for(int ii = 0; ii < 3; ii++) *D->u[ii] = *uo[ii];
+    for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *uo[ii];
+    advection(D, B, &rhs[0], &F_i[0], FF); // note: axial and radial components are scaled by y here...
+    // on first substep put the inital nonlinear forcing (scaled by y) in the previous nonlinear
+    // terms storage space for use in the velocity correction scheme once we're done here
+    if(!iter) for(int ii = 0; ii < 3; ii++) *Uf1[ii] = *F_i[ii];
+    //    -- nonlinear term (current time level)
+    for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[ii];
+    for(int ii = 0; ii < 3; ii++) *rhs[ii]  = *u_i[ii];
+    advection(D, B, &rhs[0], &F_i[3], FF); // note: axial and radial components are scaled by y here...
+    for(int ii = 0; ii < 3; ii++) {
+      //  -- pressure gradient forcing
+      *rhs[ii] = *D->u[CIND];
+      rhs[ii]->gradient(ii);
+      if(ii == 1) zero_mean_radial_pressure_gradient_at_axis(rhs[ii]);
+      if(ii <  2) rhs[ii]->mulY();
+      *rhs[ii] *= (-1.0*dt);
+      //  -- previous time step
+      *tmp = *uo[ii];
+      tmp->mulY();
+      rhs[ii]->axpy(1.0, *tmp);
+      //  -- time centered nonlinear term
+/*
+      if(!iter && ii == 2) F_i[0+ii]->mulY();
+      if(         ii == 2) F_i[3+ii]->mulY();
+      rhs[ii]->axpy(0.5*dt, *F_i[0+ii]);
+      rhs[ii]->axpy(0.5*dt, *F_i[3+ii]);
+      *rhs[ii] *= (-1.0*lambda2);
+*/
+    }
+    // couple the rhs terms so that we are in tilde variables - TODO: viscous term causes blow up...
+/*
+    for(int ii = 0; ii < 3; ii++) D->u[ii]->evaluateBoundaries(NULL, step, true);
+    Field::coupleBCs(D->u[1], D->u[2], FORWARD);
+    AuxField::couple(D->u[1], D->u[2], FORWARD);
+    AuxField::couple(rhs[1] , rhs[2],  FORWARD);
+    for(int ii = 0; ii < 3; ii++) D->u[ii]->solve(rhs[ii], MMS[ii]);
+    // uncouple back into hat variables
+    AuxField::couple(D->u[1], D->u[2], INVERSE);
+    for(int ii = 0; ii < 3; ii++) D->u[ii]->zeroNyquist();
+*/
+assert_axial_bcs(rhs);
+for(int ii = 0; ii < 3; ii++) *D->u[ii] = *rhs[ii];
+
+    // 2. pressure step
+    *phi[0] = *D->u[CIND];
+    for(int ii = 0; ii < 3; ii++) *v_i[ii] = *D->u[ii];
+    divg_rhs(NULL, v_i, rhs[0], true, false); // scale rhs by y
+    *rhs[0] /= dt;
+    *D->u[CIND] = 0.0;
+    D->u[CIND]->zeroNyquist();
+    D->u[CIND]->evaluateBoundaries(D->u[CIND], 0);
+    D->u[CIND]->solve(rhs[0], mms);
+    //D->u[CIND]->solve(rhs[0], MMS[CIND]);
+    D->u[CIND]->zeroNyquist();
+
+    // 3. velocity update
+/*
+    for(int ii = 0; ii < 3; ii++) {
+      *rhs[ii] = *D->u[CIND];
+      rhs[ii]->gradient(ii);
+      if(ii == 2) rhs[ii]->divY();
+      D->u[ii]->axpy(-dt, *rhs[ii]);
+      D->u[0]->smooth(D->u[ii]);
+    }
+*/
+phi_c[0]->zeroNyquist();
+*phi_c[0] = *D->u[CIND];
+    *D->u[CIND] += *phi[0];
+    //   -- rotational correction
+#ifdef ROTATIONAL_CORRECTION
+    divg_rhs(D, v_i, rhs[0], false, false);
+    D->u[CIND]->axpy(-1.0*Femlib::value("KINVIS"), *rhs[0]);
+#endif
+
+    for(int ii = 0; ii < 3; ii++) *v_i[ii] = *D->u[ii];
+    const_mass_flux_correction(D, v_i, 1.0);
+    for(int ii = 0; ii < 3; ii++) *D->u[ii] = *v_i[ii];
+
+    // 3. convergence test
+    int_u2 = integrate_ke(v_i);
+    for(int ii = 0; ii < 3; ii++) *v_i[ii] -= *u_i[ii];
+    int_du2 = integrate_ke(v_i);
+    for(int ii = 0; ii < 3; ii++) *v_i[ii] += *u_i[ii];
+    if(!Geometry::procID()) cout << "\t|u|^2: " << int_u2 << "\t|du|^2: " << int_du2 << "\t|du^2/u^2|^{1/2}: " << sqrt(int_du2/int_u2) << "\t";
+    int_p = D->u[CIND]->integral();
+    if(!Geometry::procID()) cout << "global pressure integral: " << int_p << "\t";
+
+    for(int ii = 0; ii < 3; ii++) D->u[ii]->smooth(D->u[ii]);
+
+#ifdef ID_DIAGNOSTIC
+    *pres = *D->u[CIND];
+    diagnostics(D, true);
+#endif
+    
+    for(int ii = 0; ii < 3; ii++) *u_i[ii] = *D->u[ii];
+    for(int ii = 0; ii < 3; ii++) u_i[ii]->zeroNyquist();
+
+    divg_rhs(D, u_i, rhs[0], false, true); // compute the divergence at the end of the iteration (for testing)
+
+    iter++;
+    if(sqrt(int_du2/int_u2) < 1.0e-14) done = 1;
+    MPI_Bcast(&done, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  for(int ii = 0; ii < 3; ii++) {
+    *rhs[ii] = *phi_c[0];
+    rhs[ii]->gradient(ii);
+    if(ii == 2) rhs[ii]->divY();
+//    D->u[ii]->axpy(-dt, *rhs[ii]);
+//zero_dirichlet_bcs(D->u[ii]);
+//    D->u[0]->smooth(D->u[ii]);
+  }
+  _axpy(u_i, -dt, rhs, u_i);
+  for(int ii = 0; ii < 3; ii++) *D->u[ii] = *u_i[ii];
+  for(int ii = 0; ii < 3; ii++) D->u[0]->smooth(D->u[ii]);
+if(step==1000){D->dump();abort();}
+
+{
+int_u2 = integrate_ke(v_i);
+if(!Geometry::procID()) cout << "end of step, final ke: " << int_u2 << endl;
+int_p = D->u[CIND]->integral();
+if(!Geometry::procID()) cout << "global pressure integral: " << int_p << endl;
+}
+
+  Femlib::ivalue("N_TIME", ntime);
+  *D->u[PIND] = *D->u[CIND];
 
   alloc_pc = false;
 }
