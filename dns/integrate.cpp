@@ -76,6 +76,60 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
+AuxField**    __int_nf_tmp = NULL;
+
+//#define REMOVE_DIVERGENCE 1
+#define REMOVE_DIVERGENCE 0
+
+#ifdef REMOVE_DIVERGENCE
+ModalMatrixSys*   mss = NULL;
+vector<AuxField*> tmp;
+AuxField*         dvg;
+
+void RemoveDivergence(Domain* D) {
+  int                    field_i = D->nAdvect() - 1;
+  int                    np      = Geometry::nP();
+  int                    np2     = Geometry::nTotElmt();
+  const int_t            nmodes  = Geometry::nModeProc();
+  const int_t            base    = Geometry::baseMode();
+  const real_t           beta    = Femlib::value("BETA");
+
+  if(!Geometry::procID()) cout << "number of advected fields (from session file): " << field_i+1 << endl;
+  if(field_i == 2) return;
+  if(!Geometry::procID()) cout << "...removing divergence from initial condition." << endl;
+
+  if(!mss) {
+    mss     = new ModalMatrixSys(0, beta, base, nmodes, D->elmt, D->b[field_i], JACPCG);
+    tmp.resize(3);
+    for(int ii = 0; ii < 3; ii++) {
+      tmp[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
+      *tmp[ii] = *D->u[ii];
+    }
+    dvg = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
+  }
+
+  // compute the divergence (scaled by the radius)
+  *dvg = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    if(ii < 2) D->u[ii]->mulY();
+    D->u[ii]->gradient(ii);
+    *dvg -= *D->u[ii];
+  }
+
+  D->u[field_i]->solve(dvg, mss);
+  D->u[field_i]->zeroNyquist();
+
+  for(int ii = 0; ii < 3; ii++) {
+    *D->u[ii]  = *tmp[ii];
+    *dvg = *D->u[field_i];
+    dvg->gradient(ii);
+    if(ii == 2) dvg->divY();
+    *D->u[ii] -= *dvg;
+D->u[ii]->smooth(D->u[ii]);
+  }
+}
+#endif
+
 #define ID_DIAGNOSTIC 1
 
 #ifdef ID_DIAGNOSTIC
@@ -224,6 +278,7 @@ void diagnostics(Domain* domain) {
   tote_prime = enst->integral();
 
   // divergence
+/*
   *enst = 0.0;
   for(int ii = 0; ii < 3; ii++) {
     *vort[ii] = *domain->u[ii];
@@ -238,6 +293,18 @@ void diagnostics(Domain* domain) {
     *enst += *vort[ii];
   }
   divg = enst->integral();
+*/
+  *enst = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    *vort[ii] = *domain->u[ii];
+    if(ii == 2) vort[ii]->transform(FORWARD);
+    vort[ii]->gradient(ii);
+    if(ii == 2) vort[ii]->transform(INVERSE);
+    *enst += *vort[ii];
+  }
+  vort[0]->times(*enst, *enst);
+  vort[0]->transform(FORWARD);
+  divg = vort[0]->integral();
 
   // transform state back into fourier space
   for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(FORWARD);
@@ -261,6 +328,149 @@ AuxField* velx_n = NULL;
 Vector du;
 double mff_correction;
 #endif
+
+void assert_axial_bcs(AuxField** u_arr) {
+  int       np     = Geometry::nP();
+  int       np2    = np * np;
+  real_t*   plane;
+  int       plane_j;
+  int       node_j;
+
+  AuxField::couple(u_arr[1], u_arr[2], FORWARD);
+
+  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+    plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+
+    // axial velocity
+    plane = u_arr[0]->plane(plane_i);
+    for(int element_i = 0; element_i < Femlib::ivalue("NELS_X"); element_i++) {
+      for(int node_i = 0; node_i < np; node_i++) {
+        node_j = element_i * np2 + node_i;
+
+        if(plane_j > 1) plane[node_j] = 0.0;
+        if(plane_j ==1) plane[node_j] = 0.0;
+      }
+    }
+    // \tilde{v} velocity
+    plane = u_arr[1]->plane(plane_i);
+    for(int element_i = 0; element_i < Femlib::ivalue("NELS_X"); element_i++) {
+      for(int node_i = 0; node_i < np; node_i++) {
+        node_j = element_i * np2 + node_i;
+
+        plane[node_j] = 0.0;
+        if(plane_j ==1) plane[node_j] = 0.0;
+      }
+    }
+    // tilde{w} velocity
+    plane = u_arr[2]->plane(plane_i);
+    for(int element_i = 0; element_i < Femlib::ivalue("NELS_X"); element_i++) {
+      for(int node_i = 0; node_i < np; node_i++) {
+        node_j = element_i * np2 + node_i;
+
+        if(plane_j > 3) plane[node_j] = 0.0;
+        if(plane_j < 2) plane[node_j] = 0.0;
+        if(plane_j ==1) plane[node_j] = 0.0;
+      }
+    }
+  }
+  // zero out all the nyquist data also
+  if(!Geometry::procID()) {
+    for(int field_i = 0; field_i < 3; field_i++) {
+      plane = u_arr[field_i]->plane(1);
+      for(int element_i = 0; element_i < Geometry::nElmt(); element_i++) {
+        for(int node_i = 0; node_i < np2; node_i++) {
+          plane[element_i*np2+node_i] = 0.0;
+        }
+      }
+    }
+  }
+  AuxField::couple(u_arr[1], u_arr[2], INVERSE);
+for(int field_i = 0; field_i < 3; field_i++) u_arr[field_i]->zeroNyquist();
+}
+
+void assert_wall_bcs(AuxField** ui) {
+  const int nex  = Femlib::ivalue("NELS_X");
+  const int ney  = Femlib::ivalue("NELS_Y");
+  const int el_o = nex*(ney - 1);
+  const int np   = Geometry::nP();
+  const int np2  = np*np;
+
+  for(int field_i = 0; field_i < 3; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      for(int el_i = el_o; el_i < nex*ney; el_i++) {
+        for(int pt_i = el_i*np2 + np*(np - 1); pt_i < (el_i+1)*np2; pt_i++) {
+          ui[field_i]->plane(plane_i)[pt_i] = 0.0;
+        }
+      }
+    }
+  }
+}
+
+void integrate_no_forcing(Domain* D, BCmgr* B, DNSAnalyser* A, FieldForce* FF, AuxField*** Us, AuxField*** Uf, ModalMatrixSys** MMS, AuxField** u_tmp) {
+  int_t              i;
+  const real_t       dt    = Femlib:: value ("D_T");
+  const int_t        nStep = Femlib::ivalue ("NO_FORCING");
+  Field*             Pressure = D -> u[3];
+
+  if(!u_tmp) {
+    u_tmp = new AuxField*[3];
+    for(i = 0; i < 3; i++) {
+      u_tmp[i] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), D->elmt);
+    }
+  }
+
+  while(D->step < nStep) {
+    for(i = 0; i < 3; i++) *Us[0][i] = *D->u[i];
+    for(i = 0; i < 3; i++) *Uf[0][i] = 0.0;
+    for(i = 0; i < 3; i++) *Uf[1][i] = 0.0;
+
+    // -- Now update the time (remainder including BCs at new time level).
+    D -> step += 1;
+    D -> time += dt;
+    Femlib::value ("t", D -> time);
+
+    // -- Update high-order pressure BC storage.
+    for(i = 0; i < 3; i++) *u_tmp[i] = 0.0;
+    B -> maintainFourier(D->step, Pressure, const_cast<const AuxField**>(u_tmp), const_cast<const AuxField**>(u_tmp));
+    Pressure -> evaluateBoundaries (Pressure, D -> step);
+    for(i = 0; i < 3; i++) *u_tmp[i] = *D->u[i];
+
+    // -- Complete unconstrained advective substep and compute pressure.
+    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
+    waveProp (D, const_cast<const AuxField***>(Us),
+                 const_cast<const AuxField***>(Uf));
+    for (i = 0; i < 3; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+
+    rollm     (Uf, NORD, 3);
+    setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+    Solve     (D, 3,  Uf[0][0], MMS[3]);
+    // -- Correct velocities for pressure.
+    project   (D, Us[0], Uf[0]);
+
+    // -- Update multilevel velocity storage.
+    for (i = 0; i < 3; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, 3);
+
+    // -- Re-evaluate velocity (possibly time-dependent) BCs.
+    assert_axial_bcs(Uf[0]);
+    assert_wall_bcs(Uf[0]);
+    for(i = 0; i < 3; i++) *D->u[i] = *Uf[0][i];
+    for(i = 0; i < 3; i++) D->u[i]->divY();
+    for(i = 0; i < 3; i++) *D->u[i] *= (-1.0 * Femlib::value("D_T") * Femlib::value("KINVIS"));
+    if(D->step > 1) for(i = 0; i < 3; i++) *D->u[i] *= (1.0/1.5);
+    for(i = 0; i < 3; i++) D->u[i]->smooth(D->u[i]);
+    if(!Geometry::procID()) {
+      for(int el_i = 0; el_i < Femlib::ivalue("NELS_X"); el_i++)
+      for(int pt_i = el_i*Geometry::nTotElmt(); pt_i < el_i*Geometry::nTotElmt()+Geometry::nP(); pt_i++)
+      D->u[0]->plane(0)[pt_i] = u_tmp[0]->plane(0)[pt_i];
+    }
+  }
+
+  D->step = 0;
+  D->time = 0.0;
+  Femlib::value("t", D->time);
+}
 
 void integrate (void (*advection) (Domain*    , 
                                    BCmgr*     ,
@@ -337,6 +547,13 @@ void integrate (void (*advection) (Domain*    ,
       *Uf[i][j] = 0.0;
     }
 
+  //if(nStep > 1 && Femlib::ivalue("NO_FORCING")) {
+  if(Femlib::ivalue("NO_FORCING")) {
+    if(!Geometry::procID()) cout << "unforced velocity correction for " << Femlib::ivalue("NO_FORCING") << " iterations...\n";
+    integrate_no_forcing(D, B, A, FF, Us, Uf, MMS, __int_nf_tmp);
+    if(!Geometry::procID()) cout << "..............done.\n";
+  }
+
   // -- Solve the Stokes flow problem with unit forcing
   //if(!D->grn[0] && fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
   if(fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
@@ -401,7 +618,6 @@ void integrate (void (*advection) (Domain*    ,
 
     D->step -= 1;
 
-
 /*
     // read in constant forcing stokes solution from file
     char       buf[StrMax], file[StrMax];
@@ -447,6 +663,9 @@ void integrate (void (*advection) (Domain*    ,
 #endif
   
   while (D -> step < nStep) {
+#ifdef REMOVE_DIVERGENCE
+    if(!D->step) RemoveDivergence(D);
+#endif
 
 #ifdef CONST_MASS_FLUX
     if(!velx_n) {
