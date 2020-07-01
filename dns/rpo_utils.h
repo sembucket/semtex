@@ -37,16 +37,13 @@ struct Context {
     int              localSize;
     int**            lShift;
     VecScatter       global_to_semtex; // scatter from global data to semtex fields
-    bool             build_PC;
     Vec              x_delta;
     int              nModesX;
     double           xmax;
-    bool             x_fourier;
     int              travelling_wave;
     int              nElsX;
     int              nElsY;
     int              iteration;
-    Domain*          write_i; // additional fields for file writing (ui)
     bool             build_dx;
     char*            session;
     fftw_complex*    data_s;
@@ -57,8 +54,9 @@ struct Context {
     double*          rad_coords;
     double           u_scale[3];
     double           c_scale;
-    double*          rdr;
+    double           beta;
     AuxField*        uBar;
+    Domain*          domain_2;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
