@@ -64,13 +64,13 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
 void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
+void integrate_no_forcing(Domain* D, BCmgr* B, FieldForce* FF);
 
 #define TESTING
 
 #define NFIELD 3
 #define NSLICE 1
 #define THREE 3
-//#define RM_2FOLD_SYM
 
 static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   Context* context = (Context*)ctx;
@@ -85,20 +85,12 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   VecScatterBegin(context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
   //norm_l_sq = 0.0;
   VecGetArray(vl, &vArray);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
     norm_l_sq += vArray[ind_i]*vArray[ind_i];
   }
   VecRestoreArray(vl, &vArray);
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   norm_sq = 0.0;
   MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -125,10 +117,6 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   VecScatterBegin(context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
   //dot_l = 0.0;
   VecGetArray(vl1, &v1Array);
   VecGetArray(vl2, &v2Array);
@@ -137,10 +125,6 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   }
   VecRestoreArray(vl1, &v1Array);
   VecRestoreArray(vl2, &v2Array);
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   *dot = 0.0;
   MPI_Allreduce(&dot_l, dot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -166,10 +150,6 @@ static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
   VecScatterBegin(context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
   VecGetArray(yl, &yArray);
   VecGetArray(Fl, &FArray);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
@@ -177,10 +157,6 @@ static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
   }
   VecRestoreArray(yl, &yArray);
   VecRestoreArray(Fl, &FArray);
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   VecScatterBegin(context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd  (context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
@@ -229,10 +205,6 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
   VecGetArray(xl, &xArray);
 
   if(!context->travelling_wave) {
@@ -251,7 +223,6 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
-    //integrate(convective, context->domain, context->bman, context->analyst, context->ff);
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
     AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     for(int field_i = 0; field_i < context->nField; field_i++) {
@@ -337,10 +308,6 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   }
 
   VecRestoreArray(xl, &xArray);
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -629,11 +596,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!Geometry::procID()) context->localSize += NSLICE; // axial phase shift dof
   if(!context->travelling_wave && !Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==1) context->localSize = 0;
-  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-#endif
-
   context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'p');
   *context->uBar = 0.0;
   for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
@@ -773,10 +735,6 @@ int main (int argc, char** argv) {
   vector<AuxField*>   ui;  // Solution fields for velocities, pressure at the i time slices
   vector<AuxField*>   fi;  // Solution fields for flow maps at the i time slices
   vector<AuxField*>   u0;  // Initial guess for the solution velocities
-  char             session_i[100];
-  FEML*            file_i;
-  char*            fname;
-  BoundarySys*     bndry;
 
   PetscInitialize(&argc, &argv, (char*)0, help);
 
@@ -785,19 +743,13 @@ int main (int argc, char** argv) {
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
-  //domain -> restart ();
+  domain -> restart ();
   //ROOTONLY domain -> report ();
 
   // load in the time slices
   ui.resize(NSLICE * THREE);
   fi.resize(NSLICE * THREE);
   u0.resize(NSLICE * THREE);
-  delete file;
-  delete domain;
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  domain->restart();
 
   AuxField::couple(domain->u[1], domain->u[2], FORWARD);
 
@@ -817,7 +769,7 @@ int main (int argc, char** argv) {
   }
   AuxField::couple(domain->u[1], domain->u[2], INVERSE);
   domain->dump();
-  delete file_i;
+  delete file;
   delete domain;
 
   PetscFinalize();
