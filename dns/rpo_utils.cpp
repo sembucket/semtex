@@ -60,7 +60,6 @@ static char RCS[] = "$Id$";
 #include "rpo_preconditioner.h"
 
 #define THREE 3
-//#define RM_2FOLD_SYM
 
 void velocity_scales(Context* context) {
   double Ku[3], Ku_bar;
@@ -394,10 +393,6 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
   VecGetArrayRead(xl, &xArray);
 
   for(int field_i = 0; field_i < THREE; field_i++) {
@@ -442,15 +437,10 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArrayRead(xl, &xArray);
 
-  //if(add_ubar) *fields[0] += *context->uBar;
   if(add_ubar) {
     if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] += *context->domain_2->u[field_i];
     else *fields[0] += *context->uBar;
   }
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   VecDestroy(&xl);
   delete[] data_r;
@@ -477,11 +467,6 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-#endif
-
-  //if(rmv_ubar) *fields[0] -= *context->uBar;
   if(rmv_ubar) {
     if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] -= *context->domain_2->u[field_i];
     else *fields[0] -= *context->uBar;
@@ -526,15 +511,10 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArray(xl, &xArray);
 
-  //if(rmv_ubar) *fields[0] += *context->uBar;
   if(rmv_ubar) {
     if(Femlib::ivalue("REMOVE_TW")) for(int field_i = 0; field_i < 3; field_i++) *fields[field_i] += *context->domain_2->u[field_i];
     else *fields[0] += *context->uBar;
   }
-
-#ifdef RM_2FOLD_SYM
-  }
-#endif
 
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
@@ -547,11 +527,7 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-#ifdef RM_2FOLD_SYM
-  int   nDofsCube_g = (Geometry::nZ()/2) * context->nDofsPlane;
-#else
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
-#endif
   int   nShifts     = 1;
   int   ind_i       = 0;
   int*  inds;
@@ -561,32 +537,6 @@ void assign_scatter_semtex(Context* context) {
   /*if(context->x_fourier)*/    nShifts++;
   if(!context->travelling_wave) nShifts++;
 
-#ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==0) {
-    inds = new int[context->localSize];
-
-    context->lShift = new int*[context->nSlice];
-    context->lShift[0] = new int[context->nField];
-
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      context->lShift[0][field_i] = field_i * nDofsCube_g + (Geometry::procID()/2) * nDofsCube_l;
-
-      for(int ind_j = 0; ind_j < nDofsCube_l; ind_j++) {
-        inds[ind_i++] = context->lShift[0][field_i] + ind_j;
-      }
-    }
-
-    // assign the phase shifts from the 0th processor
-    if(!Geometry::procID()) {
-      for(int ind_j = 0; ind_j < nShifts; ind_j++) {
-        inds[ind_i++] = context->nField * nDofsCube_g + ind_j;
-      }
-    }
-  } else {
-    inds = new int[1];
-    inds[0] = -1;
-  }
-#else
   inds = new int[context->localSize];
 
   context->lShift = new int*[context->nSlice];
@@ -612,7 +562,6 @@ void assign_scatter_semtex(Context* context) {
       }
     }
   }
-#endif
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nSlice * context->nDofsSlice, &vg);
